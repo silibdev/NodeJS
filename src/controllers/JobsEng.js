@@ -27,10 +27,11 @@ JobsEng.prototype = {
 
     _createDetailsRoute: function (self) {
         self.router.get('/jobs/eng/detail', function (req, res) {
-            var countBuildShUsages, countSwaggerPyUsages = false;
+            var countBuildShUsages = false;
+            var countSwaggerPyUsages = false;
 
             var finish = function () {
-                if(countBuildShUsages && countSwaggerPyUsages){
+                if(countBuildShUsages !== false && countSwaggerPyUsages !== false){
                     res.render('JobsEngDetail', { buildShUsages: countBuildShUsages, swaggerPyUsages: countSwaggerPyUsages });
                 }
             };
