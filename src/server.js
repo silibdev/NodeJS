@@ -126,7 +126,7 @@ var SampleApp = function () {
         if (MONGO_DB_HOST === LOCALHOST) {
             url = f('mongodb://%s/%s', MONGO_DB_HOST, DB_NAME);
         } else {
-            url = f('%s/%s?authMechanism=%s',
+            url = f('%s%s?authMechanism=%s',
                 MONGO_DB_HOST, DB_NAME, AUTH_MECHANISM);
         }
 
