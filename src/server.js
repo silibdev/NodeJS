@@ -4,7 +4,7 @@ var express = require('express');
 var mongoClient = require('mongodb').MongoClient;
 var fs = require('fs');
 var f = require('util').format;
-var LavoroEng = require('./routes/LavoroEng');
+var JobsEng = require('./controllers/JobsEng');
 
 /**
  *  Define the sample application.
@@ -138,7 +138,10 @@ var SampleApp = function () {
             self.createRoutes();
             self.app = express();
 
-            self.app.use('/', LavoroEng.getRouter(db));
+            self.app.set('views', './src/views');
+            self.app.set('view engine', 'pug');
+
+            self.app.use('/', new JobsEng(db).getRouter());
 
             //  Add handlers for the app (from the routes).
             for (var r in self.routes) {
