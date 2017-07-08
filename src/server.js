@@ -4,8 +4,7 @@ var express = require('express');
 var mongoClient = require('mongodb').MongoClient;
 var fs = require('fs');
 var f = require('util').format;
-var buildSh = require('./routes/BuildSh');
-
+var LavoroEng = require('./routes/LavoroEng');
 
 /**
  *  Define the sample application.
@@ -139,7 +138,7 @@ var SampleApp = function () {
             self.createRoutes();
             self.app = express();
 
-            self.app.use('/', buildSh(db));
+            self.app.use('/', LavoroEng.getRouter(db));
 
             //  Add handlers for the app (from the routes).
             for (var r in self.routes) {
