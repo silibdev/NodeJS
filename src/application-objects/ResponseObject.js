@@ -1,4 +1,3 @@
-
 var ResponseObject = function(status, data){
     this.status = status;
     this.data = data;
