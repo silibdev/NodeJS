@@ -1,10 +1,28 @@
 html
     head
         title Engineering Details
+    style
+        include JobsEngDetail.css
     body
         h1 Engineering Details
-        p Your script "build-deploy-sisp-war.sh" has been used #{buildShUsages} times, good job!
 
-        p Your script "swagger-client-generator.py" has been used #{swaggerPyUsages} times, good job!
+        div(class="wrapper")
+            table(class="table")
+                tr(class="row header blue")
+                    th(class="cell") Author
+                    th(class="cell") "Build.sh" usages
+                    th(class="cell") "Swagger.py" usages
+                    th(class="cell") Total amount
+                each doc,auth in totalUsages
+                    tr(class="row")
+                        td(class="cell") #{auth}
+                        td(class="cell") #{doc.countBuildSh}
+                        td(class="cell") #{doc.countSwaggerPy}
+                        td(class="cell") #{(doc.countBuildSh + doc.countSwaggerPy) * 5}.00€
+                tr(class="row final")
+                    td(class="cell") Total
+                    td(class="cell") #{totalBuildSh}
+                    td(class="cell") #{totalSwaggerPy}
+                    td(class="cell") #{(totalBuildSh + totalSwaggerPy) * 5}.00€
 
         a(href="/") Back to home

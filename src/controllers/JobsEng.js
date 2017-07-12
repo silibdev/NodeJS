@@ -27,30 +27,73 @@ JobsEng.prototype = {
 
     _createDetailsRoute: function (self) {
         self.router.get('/jobs/eng/detail', function (req, res) {
-            var countBuildShUsages = false;
-            var countSwaggerPyUsages = false;
+            var docsBuildSh, docsSwaggerPy;
+            var totalBuildSh = 0, totalSwaggerPy = 0;
 
             var finish = function () {
-                if(countBuildShUsages !== false && countSwaggerPyUsages !== false){
-                    res.render('JobsEngDetail', { buildShUsages: countBuildShUsages, swaggerPyUsages: countSwaggerPyUsages });
+                if (docsBuildSh && docsSwaggerPy) {
+                    var totalUsages = {};
+                    docsBuildSh.forEach(function (elem) {
+                        if (!totalUsages[elem._id]) {
+                            totalUsages[elem._id] = {};
+                            totalUsages[elem._id]['countSwaggerPy'] = 0;
+                        }
+                        totalUsages[elem._id]['countBuildSh'] = elem.countBuildSh;
+                        totalBuildSh += elem.countBuildSh;
+                    });
+
+                    docsSwaggerPy.forEach(function (elem) {
+                        if (!totalUsages[elem._id]) {
+                            totalUsages[elem._id] = {};
+                            totalUsages[elem._id]['countBuildSh'] = 0;
+                        }
+                        totalUsages[elem._id]['countSwaggerPy'] = elem.countSwaggerPy;
+                        totalSwaggerPy += elem.countSwaggerPy;
+                    });
+
+                    res.render('JobsEngDetail', {
+                        totalUsages: totalUsages,
+                        totalBuildSh: totalBuildSh,
+                        totalSwaggerPy: totalSwaggerPy
+                    });
                 }
             };
 
-            self.DATABASE.collection(JobsEng.BUILD_SH_DB).count(function (err, count) {
-                if(self._handleDBError(err, res)) return;
+            self.DATABASE.collection(JobsEng.BUILD_SH_DB).aggregate(
+                [
+                    {
+                        "$group": {
+                            "_id": "$author",
+                            "countBuildSh": {"$sum": 1}
+                        }
+                    }
+                ],
+                function (err, docs) {
+                    if (self._handleDBError(err, res)) return;
 
-                countBuildShUsages = count;
+                    docsBuildSh = docs;
 
-                finish();
-            });
+                    finish();
+                }
+            );
 
-            self.DATABASE.collection(JobsEng.SWAGGER_PY).count(function (err, count) {
-                if(self._handleDBError(err, res)) return;
+            self.DATABASE.collection(JobsEng.SWAGGER_PY).aggregate(
+                [
+                    {
+                        "$group": {
+                            "_id": "$author",
+                            "countSwaggerPy": {"$sum": 1}
+                        }
+                    }
+                ],
+                function (err, docs) {
+                    if (self._handleDBError(err, res)) return;
 
-                countSwaggerPyUsages = count;
+                    docsSwaggerPy = docs;
 
-                finish();
-            });
+                    finish();
+                }
+            );
 
         })
     },
@@ -60,7 +103,7 @@ JobsEng.prototype = {
             console.log(req.originalUrl, '. Request body: ', req.body);
 
             self.DATABASE.collection(JobsEng.BUILD_SH_DB).insertOne(req.body, function (err, result) {
-                if(self._handleDBError(err, res)) return;
+                if (self._handleDBError(err, res)) return;
 
                 console.log('---Saved to database', result.ops);
                 res.send(new ResponseModel(ResponseModel.OK, result.insertedId));
@@ -73,7 +116,7 @@ JobsEng.prototype = {
             console.log(req.originalUrl, '. Request body: ', req.body);
 
             self.DATABASE.collection(JobsEng.SWAGGER_PY).insertOne(req.body, function (err, result) {
-                if(self._handleDBError(err, res)) return;
+                if (self._handleDBError(err, res)) return;
 
                 console.log('---Saved to database', result.ops);
                 res.send(new ResponseModel(ResponseModel.OK, result.insertedId));
