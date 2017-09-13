@@ -29,7 +29,7 @@ var SampleApp = function () {
      */
     self.setupVariables = function () {
         //  Set the environment variables we need.
-        self.ipaddress = process.env.IP || process.env.NODEJS_SERVICE_HOST || process.env.OPENSHIFT_NODEJS_IP;
+        self.ipaddress = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
         self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
 
         if (typeof self.ipaddress === "undefined") {
