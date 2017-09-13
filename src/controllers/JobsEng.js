@@ -27,6 +27,8 @@ JobsEng.prototype = {
 
     _createDetailsRoute: function (self) {
         self.router.get('/jobs/eng/detail', function (req, res) {
+            console.log('%s: Received request for: "/jobs/eng/detail"',
+                new Date(Date.now()));
             var docsBuildSh, docsSwaggerPy;
             var totalBuildSh = 0, totalSwaggerPy = 0;
 

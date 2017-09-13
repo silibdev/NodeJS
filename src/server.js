@@ -109,6 +109,8 @@ var SampleApp = function () {
         self.routes = {};
 
         self.routes['/'] = function (req, res) {
+            console.log('%s: Received request for: "/". Serving: index.html',
+                new Date(Date.now()));
             res.setHeader('Content-Type', 'text/html');
             res.send(self.cache_get('index.html'));
         };
