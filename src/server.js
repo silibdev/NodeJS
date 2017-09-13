@@ -29,7 +29,7 @@ var SampleApp = function () {
      */
     self.setupVariables = function () {
         //  Set the environment variables we need.
-        self.ipaddress = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
+        self.ipaddress = process.env.IP || process.env.NODEJS_SERVICE_HOST || process.env.OPENSHIFT_NODEJS_IP;
         self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
 
         if (typeof self.ipaddress === "undefined") {
@@ -37,6 +37,8 @@ var SampleApp = function () {
             //  allows us to run/test the app locally.
             console.warn('No OPENSHIFT_NODEJS_IP var, using 127.0.0.1');
             self.ipaddress = "127.0.0.1";
+        } else {
+            console.log("The server is going to use this address", self.ipaddress + ':' + self.port);
         }
     };
 
