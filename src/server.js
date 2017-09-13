@@ -14,7 +14,6 @@ var SampleApp = function () {
     //  Scope.
     var self = this;
 
-    //mongodb://admin:b6UQFC2UXfP5@127.6.118.130:27017/
     var LOCALHOST = 'localhost:27017',
         MONGO_DB_HOST = process.env.OPENSHIFT_MONGODB_DB_URL || LOCALHOST,
         DB_NAME = process.env.OPENSHIFT_APP_NAME || 'nodejs',
@@ -30,8 +29,8 @@ var SampleApp = function () {
      */
     self.setupVariables = function () {
         //  Set the environment variables we need.
-        self.ipaddress = process.env.OPENSHIFT_NODEJS_IP;
-        self.port = process.env.OPENSHIFT_NODEJS_PORT || 8080;
+        self.ipaddress = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
+        self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
 
         if (typeof self.ipaddress === "undefined") {
             //  Log errors on OpenShift but continue w/ 127.0.0.1 - this
