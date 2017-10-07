@@ -132,21 +132,24 @@ var SampleApp = function () {
             url = f('%s%s?authMechanism=%s',
                 MONGO_DB_HOST, DB_NAME, AUTH_MECHANISM);
         }
+        
+        console.log('Trying to connect to mongodb: ', url);
 
         mongoClient.connect(url, function (err, database) {
-            if (err) return console.log(err);
-
-            var db = database;
-
             self.createRoutes();
             self.app = express();
 
             self.app.set('views', './src/views');
             self.app.set('view engine', 'pug');
-
-            self.app.use('/', new JobsEng(db).getRouter());
-
+            
             self.app.use('/games/byrons-adventures', express.static('./static/BA_GameRelease'));
+
+            if (err) {
+               console.log(err);
+            } else {
+                var db = database;
+                self.app.use('/', new JobsEng(db).getRouter());
+            }
 
             //  Add handlers for the app (from the routes).
             for (var r in self.routes) {
