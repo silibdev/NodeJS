@@ -1,0 +1,58 @@
+{
+    "assets": {
+        "map_tiles1": { "type": "image", "source": "assets/images/Tilesetfinal1.png" },
+        "map_tiles2": { "type": "image", "source": "assets/images/Tilesetfinal2.bmp" },
+        "level_tilemap": { "type": "tilemap", "source": "assets/maps/level6map.json" },
+        "byronOLD": { "type": "atlas", "image": "assets/images/player/ByronFinalJSON2.png", "json": "assets/images/player/ByronFinalJSON2.json"},
+        "byron": { "type": "spritesheet", "source": "assets/images/player/byronAlone.png", "frame_width": 64, "frame_height": 64, "frames": -1, "margin": 0, "spacing": 0 },
+        "weapon": { "type": "spritesheet", "source": "assets/images/player/sword.png", "frame_width": 192, "frame_height": 192, "frames": -1, "margin": 0, "spacing": 0 },
+        "fairy": { "type": "spritesheet", "source": "assets/images/player/fairy.png", "frame_width": 64, "frame_height": 50, "frames": -1, "margin": 0, "spacing": 0 },
+        "hearth": { "type": "spritesheet", "source": "assets/images/ui/hearth.png", "frame_width": 35, "frame_height": 33, "frames": -1, "margin": 0, "spacing": 0 },
+        "mana": { "type": "spritesheet", "source": "assets/images/ui/mana.png", "frame_width": 32, "frame_height": 32, "frames": -1, "margin": 0, "spacing": 0 },
+        "fireball": { "type": "spritesheet", "source": "assets/images/player/fireball.png", "frame_width": 50, "frame_height": 22, "frames": -1, "margin": 0, "spacing": 0 },
+        "waterball": { "type": "image", "source": "assets/images/player/snowflake2.png" },
+        "manaPot": { "type": "image", "source": "assets/images/items/manaPot3.png" },
+        "healthPot": { "type": "image", "source": "assets/images/items/healthPot3.png" },
+        "GoldCoin": { "type": "image", "source": "assets/images/items/GoldCoin2.png" },
+        "goal": { "type": "image", "source": "assets/images/items/star.png" },
+        "SilverCoin": { "type": "image", "source": "assets/images/items/SilverCoin.png" },
+        "CopperCoin": { "type": "image", "source": "assets/images/items/CopperCoin.png" },
+        "healthBarR": { "type": "image", "source": "assets/images/ui/healthBarR.png" },
+        "healthBarL": { "type": "image", "source": "assets/images/ui/healthBarL.png" },
+        "healthBarC": { "type": "image", "source": "assets/images/ui/healthBarC.png" },
+        "bubble": { "type": "image", "source": "assets/images/ui/bubble.png" },
+        "pauseBkg": { "type": "image", "source": "assets/images/pauseBkg.png" },
+        "signboard": { "type": "image", "source": "assets/images/tutorial/SignboardBase.png" },
+        "blob": { "type": "spritesheet", "source": "assets/images/enemies/blob.png", "frame_width": 30, "frame_height": 24, "frames": 8, "margin": 0, "spacing": 1 },
+        "bee": { "type": "spritesheet", "source": "assets/images/enemies/bee.png", "frame_width": 34, "frame_height": 34, "frames": -1, "margin": 0, "spacing": 0 },
+        "bullet": { "type": "spritesheet", "source": "assets/images/enemies/bullet.png", "frame_width": 22, "frame_height": 11, "frames": -1, "margin": 0, "spacing": 0 },
+        "slime": { "type": "atlas", "image": "assets/images/enemies/slimeFull.png", "json": "assets/images/enemies/slimeFull.json"},
+        "orcArcher": { "type": "spritesheet", "source": "assets/images/enemies/orcMale.png", "frame_width": 64, "frame_height": 64, "frames": -1, "margin": 0, "spacing": 0 },
+        "arrow": { "type": "spritesheet", "source": "assets/images/enemies/arrow.png", "frame_width": 33, "frame_height": 7, "frames": -1, "margin": 0, "spacing": 0 },
+        "orcFighter": { "type": "spritesheet", "source": "assets/images/enemies/orcFemaleDagger.png", "frame_width": 64, "frame_height": 64, "frames": -1, "margin": 0, "spacing": 0 },
+        "orcWeapon": { "type": "spritesheet", "source": "assets/images/enemies/saber.png", "frame_width": 192, "frame_height": 192, "frames": -1, "margin": 0, "spacing": 0 },
+        "skeleton": { "type": "spritesheet", "source": "assets/images/enemies/skeleton.png", "frame_width": 64, "frame_height": 64, "frames": -1, "margin": 0, "spacing": 0 },
+        "skeletonWeapon": { "type": "spritesheet", "source": "assets/images/enemies/spear.png", "frame_width": 192, "frame_height": 192, "frames": -1, "margin": 0, "spacing": 0 },
+        "cosoVerde": { "type": "atlas", "image": "assets/images/enemies/cosoVerdeFullNew.png", "json": "assets/images/enemies/cosoVerdeFullNew.json"},
+        "libellula": { "type": "spritesheet", "source": "assets/images/enemies/libellula2.png", "frame_width": 80, "frame_height": 64, "frames": -1, "margin": 0, "spacing": 0 },
+        "crocodile2": { "type": "spritesheet", "source": "assets/images/enemies/crocodile.png", "frame_width": 64, "frame_height": 48, "frames": -1, "margin": 0, "spacing": 0 },
+        "crocodile": { "type": "spritesheet", "source": "assets/images/enemies/dragon2.png", "frame_width": 50, "frame_height": 50, "frames": -1, "margin": 0, "spacing": 0 },
+        "wakwak": { "type": "atlas", "image": "assets/images/enemies/wakwakFull.png", "json": "assets/images/enemies/wakwakFull.json"},
+        "orologio": { "type": "atlas", "image": "assets/images/enemies/orologioFull.png", "json": "assets/images/enemies/orologioFull.json"},
+        "largeBullet": { "type": "spritesheet", "source": "assets/images/enemies/largeBullet.png", "frame_width": 62, "frame_height": 112, "frames": -1, "margin": 0, "spacing": 0 },
+        "sky": { "type": "image", "source": "assets/images/sky.png" }
+    },
+    "groups": [
+        "items",
+        "players",
+        "enemies",
+        "signs"
+    ],
+    "map": {
+        "key": "level_tilemap",
+        "tilesets": ["map_tiles1", "map_tiles2"]
+    },
+    "properties":{
+        "bkgColor" : "#80B0DA"
+    }
+}

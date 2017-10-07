@@ -144,6 +144,8 @@ var SampleApp = function () {
 
             self.app.use('/', new JobsEng(db).getRouter());
 
+            self.app.use('/games/byrons-adventures', express.static('./static/BA_GameRelease'));
+
             //  Add handlers for the app (from the routes).
             for (var r in self.routes) {
                 self.app.get(r, self.routes[r]);

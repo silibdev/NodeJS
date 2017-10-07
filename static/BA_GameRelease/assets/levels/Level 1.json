@@ -1,0 +1,42 @@
+{
+    "assets": {
+        "map_tiles1": { "type": "image", "source": "assets/images/Tilesetfinal1.png" },
+        "map_tiles2": { "type": "image", "source": "assets/images/Tilesetfinal2.bmp" },
+        "level_tilemap": { "type": "tilemap", "source": "assets/maps/level_intro2.json" },
+        "byronOLD": { "type": "atlas", "image": "assets/images/player/ByronFinalJSON2.png", "json": "assets/images/player/ByronFinalJSON2.json"},
+        "byron": { "type": "spritesheet", "source": "assets/images/player/byronAlone.png", "frame_width": 64, "frame_height": 64, "frames": -1, "margin": 0, "spacing": 0 },
+        "weapon": { "type": "spritesheet", "source": "assets/images/player/sword.png", "frame_width": 192, "frame_height": 192, "frames": -1, "margin": 0, "spacing": 0 },
+        "hearth": { "type": "spritesheet", "source": "assets/images/ui/hearth.png", "frame_width": 35, "frame_height": 33, "frames": -1, "margin": 0, "spacing": 0 },
+        "mana": { "type": "spritesheet", "source": "assets/images/ui/mana.png", "frame_width": 32, "frame_height": 32, "frames": -1, "margin": 0, "spacing": 0 },
+        "fireball": { "type": "spritesheet", "source": "assets/images/player/fireball.png", "frame_width": 50, "frame_height": 22, "frames": -1, "margin": 0, "spacing": 0 },
+        "waterball": { "type": "image", "source": "assets/images/player/snowflake2.png" },
+        "manaPot": { "type": "image", "source": "assets/images/items/manaPot3.png" },
+        "healthPot": { "type": "image", "source": "assets/images/items/healthPot3.png" },
+        "GoldCoin": { "type": "image", "source": "assets/images/items/GoldCoin2.png" },
+        "goal": { "type": "image", "source": "assets/images/items/star.png" },
+        "SilverCoin": { "type": "image", "source": "assets/images/items/SilverCoin.png" },
+        "CopperCoin": { "type": "image", "source": "assets/images/items/CopperCoin.png" },
+        "healthBarR": { "type": "image", "source": "assets/images/ui/healthBarR.png" },
+        "healthBarL": { "type": "image", "source": "assets/images/ui/healthBarL.png" },
+        "healthBarC": { "type": "image", "source": "assets/images/ui/healthBarC.png" },
+        "pauseBkg": { "type": "image", "source": "assets/images/pauseBkg.png" },
+        "signboard": { "type": "image", "source": "assets/images/tutorial/SignboardBase.png" },
+        "blob": { "type": "spritesheet", "source": "assets/images/enemies/blob.png", "frame_width": 30, "frame_height": 24, "frames": 8, "margin": 0, "spacing": 1 },
+        "bee": { "type": "spritesheet", "source": "assets/images/enemies/bee.png", "frame_width": 34, "frame_height": 34, "frames": -1, "margin": 0, "spacing": 0 },
+        "slime": { "type": "atlas", "image": "assets/images/enemies/slimeFull.png", "json": "assets/images/enemies/slimeFull.json"},
+        "sky": { "type": "image", "source": "assets/images/sky.png" }
+    },
+    "groups": [
+        "items",
+        "players",
+        "enemies",
+        "signs"
+    ],
+    "map": {
+        "key": "level_tilemap",
+        "tilesets": ["map_tiles1", "map_tiles2"]
+    },
+    "properties":{
+        "bkgColor" : "#80B0DA"
+    }
+}
