@@ -1,11 +1,7 @@
 # Welcome to my personal NodeJS server!
-##### You can find this server hosted by openshift [here](http://nodejs-silibcloud.rhcloud.com).
+##### You can find this server hosted by openshift [here](http://nodejs-localgroup.7e14.starter-us-west-2.openshiftapps.com).
 
 ## Openshift configuration
-I started with a `Node.js 0.10` small gear with `MongoDB 2.4` as database and `RockMongo 1.1` as database manager.
-
-Using [ramr nodejs-custom-version-openshift](https://github.com/ramr/nodejs-custom-version-openshift) I managed to have a custom version of NodeJS. (The default 0.10 was a little to hold)
-
 On my github I added a second pushurl (pointing the openshift repo) so that I can work just with
 one and have both repos always up to date. 
 
