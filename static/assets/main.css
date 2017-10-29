@@ -1,0 +1,14 @@
+h1 {
+    -ms-hyphens: none;
+    -moz-hyphens: none;
+    -webkit-hyphens: none;
+    hyphens: none;
+}
+
+.logo img {
+    width: 25rem;
+}
+
+footer {
+    margin-top: 5rem;
+}
