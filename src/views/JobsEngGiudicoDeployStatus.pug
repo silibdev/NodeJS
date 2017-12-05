@@ -1,0 +1,29 @@
+html
+    head
+        title Engineering Details
+    style
+        include JobsEngGiudicoDeployStatus.css
+    link(rel='stylesheet', href='https://unpkg.com/sakura.css/css/sakura.css')
+    body
+        h1 Engineering Giudico Deploy Status
+
+        div(class="wrapper")
+            table(class="table")
+                tr(class="row header")
+                    th(class="cell") Resource
+                    th(class="cell") Author
+                    th(class="cell") Status
+                    th(class="cell") TimeStamp
+                each doc in listResourceStatus
+                    tr(class="row"+((doc.status==="in corso")? " in-corso" : ""))
+                        td(class="cell") #{doc.resource}
+                        td(class="cell") #{doc.author}
+                        td(class="cell") #{doc.status}
+                        td(class="cell") #{doc.timestamp}
+                //tr(class="row final")
+                //    td(class="cell") Total
+                //    td(class="cell") #{totalBuildSh}
+                //    td(class="cell") #{totalSwaggerPy}
+                //    td(class="cell") #{(totalBuildSh + totalSwaggerPy) * 5}.00€
+
+        a(href="/") Back to home

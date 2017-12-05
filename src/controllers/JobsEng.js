@@ -11,6 +11,8 @@ var JobsEng = function (db) {
     this._createDetailsRoute(this);
     this._createBuildShRoute(this);
     this._createSwaggerPyRoute(this);
+    this._createGiudicoDeployStatus(this);
+    this._createGiudicoDeployStatusPost(this);
     this._handleError(this);
 };
 
@@ -18,11 +20,57 @@ JobsEng.constructor = JobsEng;
 
 JobsEng.BUILD_SH_DB = 'build-sh-usages';
 JobsEng.SWAGGER_PY = 'swagger-py-usages';
+JobsEng.GIUDICO_DEPLOY_STATUS = 'test-collection';
 
 JobsEng.prototype = {
 
     getRouter: function () {
         return this.router;
+    },
+
+    _createGiudicoDeployStatus: function (self) {
+        self.router.get('/jobs/eng/giudico/deploy-status', function (req, res) {
+            console.log('%s: Received request for: "/jobs/eng/giudico/deploy-status"',
+                new Date(Date.now()));
+
+            var listResourceStatus = {};
+
+            self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).find({}).toArray( function (err, docs) {
+                if (self._handleDBError(err, res)) return;
+
+                console.log(docs);
+
+                docs.forEach( function(el) {
+                   if(!listResourceStatus[el.resource]){
+                       listResourceStatus[el.resource] = el;
+                   } else {
+                       prevEl = listResourceStatus[el.resource];
+                       if(prevEl.timestamp < el.timestamp){
+                           listResourceStatus[el.resource] = el;
+                       }
+                   }
+                });
+
+                res.render('JobsEngGiudicoDeployStatus', {
+                    listResourceStatus: listResourceStatus
+                })
+            })
+        })
+    },
+
+    _createGiudicoDeployStatusPost: function (self) {
+        self.router.put('/jobs/eng/giudico/deploy-status', bodyParser.json(), function (req, res) {
+            console.log('%s: Received request for: "/jobs/eng/giudico/deploy-status"',
+                new Date(Date.now()));
+            console.log(req.originalUrl, '. Request body: ', req.body);
+
+            self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).insertOne(req.body, function (err, result) {
+                if (self._handleDBError(err, res)) return;
+
+                console.log('---Saved to database', result.ops);
+                res.send(new ResponseModel(ResponseModel.OK, result.insertedId));
+            });
+        })
     },
 
     _createDetailsRoute: function (self) {
