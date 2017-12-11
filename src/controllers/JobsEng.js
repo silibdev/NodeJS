@@ -20,8 +20,7 @@ JobsEng.constructor = JobsEng;
 
 JobsEng.BUILD_SH_DB = 'build-sh-usages';
 JobsEng.SWAGGER_PY = 'swagger-py-usages';
-// JobsEng.GIUDICO_DEPLOY_STATUS = 'giudico-deploy-status';
-JobsEng.GIUDICO_DEPLOY_STATUS = 'test-collection';
+JobsEng.GIUDICO_DEPLOY_STATUS = 'giudico-deploy-status';
 
 JobsEng.prototype = {
 
