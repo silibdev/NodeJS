@@ -10,16 +10,16 @@ html
         div(class="wrapper")
             table(class="table")
                 tr(class="row header")
-                    th(class="cell") Resource
+                    th(class="cell") Service
                     th(class="cell") Author
                     th(class="cell") Status
-                    th(class="cell") TimeStamp
+                    th(class="cell") Time
                 each doc in listResourceStatus
                     tr(class="row"+((doc.status==="in corso")? " in-corso" : ""))
                         td(class="cell") #{doc.resource}
                         td(class="cell") #{doc.author}
                         td(class="cell") #{doc.status}
-                        td(class="cell") #{doc.timestamp}
+                        td(class="cell") #{doc.time}
                 //tr(class="row final")
                 //    td(class="cell") Total
                 //    td(class="cell") #{totalBuildSh}

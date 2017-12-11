@@ -20,7 +20,8 @@ JobsEng.constructor = JobsEng;
 
 JobsEng.BUILD_SH_DB = 'build-sh-usages';
 JobsEng.SWAGGER_PY = 'swagger-py-usages';
-JobsEng.GIUDICO_DEPLOY_STATUS = 'giudico-deploy-status';
+// JobsEng.GIUDICO_DEPLOY_STATUS = 'giudico-deploy-status';
+JobsEng.GIUDICO_DEPLOY_STATUS = 'test-collection';
 
 JobsEng.prototype = {
 
@@ -35,20 +36,33 @@ JobsEng.prototype = {
 
             var listResourceStatus = {};
 
-            self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).find({}).toArray( function (err, docs) {
+            self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).find({}).toArray(function (err, docs) {
                 if (self._handleDBError(err, res)) return;
 
                 console.log(docs);
 
-                docs.forEach( function(el) {
-                   if(!listResourceStatus[el.resource]){
-                       listResourceStatus[el.resource] = el;
-                   } else {
-                       prevEl = listResourceStatus[el.resource];
-                       if(prevEl.timestamp < el.timestamp){
-                           listResourceStatus[el.resource] = el;
-                       }
-                   }
+                docs.map(function (el) {
+                    el.timestamp = new Date(el.timestamp);
+                    return el;
+                }).sort(function (el1, el2) {
+                    return el1.resource.localeCompare(el2.resource);
+                }).forEach(function (el) {
+                    el.time = el.timestamp.toLocaleString('it-IT', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                    if (!listResourceStatus[el.resource]) {
+                        listResourceStatus[el.resource] = el;
+                    } else {
+                        prevEl = listResourceStatus[el.resource];
+                        if (prevEl.timestamp < el.timestamp) {
+                            listResourceStatus[el.resource] = el;
+                        }
+                    }
                 });
 
                 res.render('JobsEngGiudicoDeployStatus', {
