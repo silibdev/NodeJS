@@ -12,7 +12,7 @@ var JobsEng = function (db) {
     this._createBuildShRoute(this);
     this._createSwaggerPyRoute(this);
     this._createGiudicoDeployStatus(this);
-    this._createGiudicoDeployStatusPost(this);
+    this._createGiudicoDeployStatusPut(this);
     this._handleError(this);
 };
 
@@ -52,7 +52,8 @@ JobsEng.prototype = {
                         day: '2-digit',
                         hour: '2-digit',
                         minute: '2-digit',
-                        second: '2-digit'
+                        second: '2-digit',
+                        timeZone: 'Europe/Rome'
                     });
                     if (!listResourceStatus[el.resource]) {
                         listResourceStatus[el.resource] = el;
@@ -71,7 +72,7 @@ JobsEng.prototype = {
         })
     },
 
-    _createGiudicoDeployStatusPost: function (self) {
+    _createGiudicoDeployStatusPut: function (self) {
         self.router.put('/jobs/eng/giudico/deploy-status', bodyParser.json(), function (req, res) {
             console.log('%s: Received request for: "/jobs/eng/giudico/deploy-status"',
                 new Date(Date.now()));
