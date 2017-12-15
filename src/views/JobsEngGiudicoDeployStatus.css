@@ -16,9 +16,9 @@
     background: #f6f6f6;
 }
 
-.row:nth-of-type(odd) {
-    background: #bababa;
-}
+/*.row:nth-of-type(odd) {*/
+    /*background: #bababa;*/
+/*}*/
 
 .row.in-corso {
     background: #ECCB26;
