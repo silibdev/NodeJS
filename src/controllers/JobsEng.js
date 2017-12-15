@@ -12,7 +12,7 @@ var JobsEng = function (db) {
     this._createBuildShRoute(this);
     this._createSwaggerPyRoute(this);
     this._createGiudicoDeployStatus(this);
-    this._createGiudicoDeployStatusPost(this);
+    this._createGiudicoDeployStatusPut(this);
     this._handleError(this);
 };
 
@@ -35,20 +35,34 @@ JobsEng.prototype = {
 
             var listResourceStatus = {};
 
-            self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).find({}).toArray( function (err, docs) {
+            self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).find({}).toArray(function (err, docs) {
                 if (self._handleDBError(err, res)) return;
 
                 console.log(docs);
 
-                docs.forEach( function(el) {
-                   if(!listResourceStatus[el.resource]){
-                       listResourceStatus[el.resource] = el;
-                   } else {
-                       prevEl = listResourceStatus[el.resource];
-                       if(prevEl.timestamp < el.timestamp){
-                           listResourceStatus[el.resource] = el;
-                       }
-                   }
+                docs.map(function (el) {
+                    el.timestamp = new Date(el.timestamp);
+                    return el;
+                }).sort(function (el1, el2) {
+                    return el1.resource.localeCompare(el2.resource);
+                }).forEach(function (el) {
+                    el.time = el.timestamp.toLocaleString('it-IT', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        timeZone: 'Europe/Rome'
+                    });
+                    if (!listResourceStatus[el.resource]) {
+                        listResourceStatus[el.resource] = el;
+                    } else {
+                        prevEl = listResourceStatus[el.resource];
+                        if (prevEl.timestamp < el.timestamp) {
+                            listResourceStatus[el.resource] = el;
+                        }
+                    }
                 });
 
                 res.render('JobsEngGiudicoDeployStatus', {
@@ -58,7 +72,7 @@ JobsEng.prototype = {
         })
     },
 
-    _createGiudicoDeployStatusPost: function (self) {
+    _createGiudicoDeployStatusPut: function (self) {
         self.router.put('/jobs/eng/giudico/deploy-status', bodyParser.json(), function (req, res) {
             console.log('%s: Received request for: "/jobs/eng/giudico/deploy-status"',
                 new Date(Date.now()));
