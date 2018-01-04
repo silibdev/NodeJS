@@ -5,10 +5,7 @@ html
         include JobsEngGiudicoDeployStatus.css
     link(rel='stylesheet', href='https://unpkg.com/sakura.css/css/sakura.css')
     body
-
-        include xmas-lights.pug
-
-        h1(class="christmas-font") Engineering Giudico Deploy Status
+        h1 Engineering Giudico Deploy Status
 
         div(class="wrapper")
             table(class="table")
@@ -29,6 +26,4 @@ html
                 //    td(class="cell") #{totalSwaggerPy}
                 //    td(class="cell") #{(totalBuildSh + totalSwaggerPy) * 5}.00€
 
-        a(class="christmas-font", href="/") Back to home
-
-        include xmas-footer.pug
+        a(href="/") Back to home
