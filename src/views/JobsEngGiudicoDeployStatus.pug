@@ -3,8 +3,12 @@ html
         title Giudico Status
     style
         include JobsEngGiudicoDeployStatus.css
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.29.2/js/jquery.tablesorter.min.js")
+    script(src="https://cdnjs.cloudflare.com/ajax/libs/jquery.tablesorter/2.29.2/js/jquery.tablesorter.widgets.min.js")
     script(src="/socket.io/socket.io.js")
     link(rel='stylesheet', href='https://unpkg.com/sakura.css/css/sakura.css')
+    link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css")
     body
         h1 Engineering Giudico Deploy Status
 
@@ -13,12 +17,14 @@ html
                 label(class="switch") Mute change music
                     input(type="checkbox", id="settings-muted", onclick="muteMusic(this);")
         div(class="wrapper")
-            table(class="table")
-                tr(class="row header")
-                    th(class="cell") Service
-                    th(class="cell") Author
-                    th(class="cell") Status
-                    th(class="cell") Time
+            table(class="table", id="table")
+                thead
+                    tr(class="row header")
+                        th(class="cell") Service
+                        th(class="cell") Author
+                        th(class="cell") Status
+                        th(class="cell") Time
+                tbody
                 each doc in listResourceStatus
                     tr(class="row"+((doc.status==="in corso")? " in-corso" : ""))
                         td(class="cell") #{doc.resource}
@@ -34,6 +40,11 @@ html
         a(href="/") Back to home
 
         script.
+
+            $('#table').tablesorter({
+                widgets: ["saveSort"]
+            });
+
             var socketIo = io();
             var settingsStorageKeys = {
                 mute: 'settings:muted'
