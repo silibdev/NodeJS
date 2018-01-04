@@ -4,14 +4,15 @@ var ResponseModel = require('../models/ResponseModel');
 var ErrorModel = require('../models/ErrorModel');
 
 
-var JobsEng = function (db) {
+var JobsEng = function (db, socketIo) {
     this.DATABASE = db;
+    this.socketIo = socketIo;
     this.router = express.Router();
 
     this._createDetailsRoute(this);
     this._createBuildShRoute(this);
     this._createSwaggerPyRoute(this);
-    this._createGiudicoDeployStatus(this);
+    this._createGiudicoDeployStatusRoute(this);
     this._createGiudicoDeployStatusPut(this);
     this._handleError(this);
 };
@@ -21,6 +22,9 @@ JobsEng.constructor = JobsEng;
 JobsEng.BUILD_SH_DB = 'build-sh-usages';
 JobsEng.SWAGGER_PY = 'swagger-py-usages';
 JobsEng.GIUDICO_DEPLOY_STATUS = 'giudico-deploy-status';
+JobsEng.EVENTS = {
+    GIUDICO_DEPLOY_STATUS_CHANGE: 'gdsc'
+};
 
 JobsEng.prototype = {
 
@@ -28,7 +32,7 @@ JobsEng.prototype = {
         return this.router;
     },
 
-    _createGiudicoDeployStatus: function (self) {
+    _createGiudicoDeployStatusRoute: function (self) {
         self.router.get('/jobs/eng/giudico/deploy-status', function (req, res) {
             console.log('%s: Received request for: "/jobs/eng/giudico/deploy-status"',
                 new Date(Date.now()));
@@ -77,6 +81,8 @@ JobsEng.prototype = {
             console.log('%s: Received request for: "/jobs/eng/giudico/deploy-status"',
                 new Date(Date.now()));
             console.log(req.originalUrl, '. Request body: ', req.body);
+
+            self.socketIo.emit(JobsEng.EVENTS.GIUDICO_DEPLOY_STATUS_CHANGE, req.body);
 
             self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).insertOne(req.body, function (err, result) {
                 if (self._handleDBError(err, res)) return;

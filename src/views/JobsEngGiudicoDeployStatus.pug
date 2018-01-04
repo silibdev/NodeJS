@@ -3,10 +3,15 @@ html
         title Giudico Status
     style
         include JobsEngGiudicoDeployStatus.css
+    script(src="/socket.io/socket.io.js")
     link(rel='stylesheet', href='https://unpkg.com/sakura.css/css/sakura.css')
     body
         h1 Engineering Giudico Deploy Status
 
+        div(class="settings")
+            div(class="switch-container")
+                label(class="switch") Mute change music
+                    input(type="checkbox", id="settings-muted", onclick="muteMusic(this);")
         div(class="wrapper")
             table(class="table")
                 tr(class="row header")
@@ -27,3 +32,35 @@ html
                 //    td(class="cell") #{(totalBuildSh + totalSwaggerPy) * 5}.00€
 
         a(href="/") Back to home
+
+        script.
+            var socketIo = io();
+            var settingsStorageKeys = {
+                mute: 'settings:muted'
+            };
+
+            var mute = localStorage.getItem(settingsStorageKeys.mute) == 'true';
+            document.getElementById("settings-muted").checked = mute;
+
+            var muteMusic = function (checkbox) {
+                mute = checkbox.checked;
+                localStorage.setItem(settingsStorageKeys.mute, mute);
+            }
+
+            var pageReload = function () {
+                location.reload();
+            }
+
+            socketIo.on('gdsc', function (status) {
+                console.log('Deploy status change', status);
+                if (mute) {
+                    pageReload();
+                } else {
+                    var audio = new Audio("/assets/change.ogg");
+                    audio.addEventListener('ended', function () {
+                        console.log('ended');
+                        pageReload();
+                    });
+                    audio.play();
+                }
+            })

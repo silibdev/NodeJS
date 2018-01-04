@@ -1,6 +1,8 @@
 #!/bin/env node
 //  OpenShift sample Node application
 var express = require('express');
+var http = require('http');
+var socketIo = require('socket.io');
 var mongoClient = require('mongodb').MongoClient;
 var fs = require('fs');
 var f = require('util').format;
@@ -138,6 +140,8 @@ var SampleApp = function () {
         mongoClient.connect(url, function (err, database) {
             self.createRoutes();
             self.app = express();
+            self.http = http.Server(self.app);
+            self.socketIo = socketIo(self.http);
 
             self.app.set('views', './src/views');
             self.app.set('view engine', 'pug');
@@ -149,7 +153,7 @@ var SampleApp = function () {
                 console.log(err);
             } else {
                 console.log('Connected to mongodb');
-                self.app.use('/', new JobsEng(database).getRouter());
+                self.app.use('/', new JobsEng(database, self.socketIo).getRouter());
             }
 
             //  Add handlers for the app (from the routes).
@@ -180,7 +184,7 @@ var SampleApp = function () {
      */
     self.start = function () {
         //  Start the app on the specific interface (and port).
-        self.app.listen(self.port, self.ipaddress, function () {
+        self.http.listen(self.port, self.ipaddress, function () {
             console.log('%s: Node server started on %s:%d ...',
                 new Date(Date.now()), self.ipaddress, self.port);
         });

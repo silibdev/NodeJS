@@ -1,7 +1,10 @@
+.switch-container {
+    float: right;
+}
+
 .wrapper {
     margin: 0 auto;
     max-width: 80rem;
-    background: #2b2b2b;
 }
 
 .table {
