@@ -14,6 +14,7 @@ var JobsEng = function (db, socketIo) {
     this._createSwaggerPyRoute(this);
     this._createGiudicoDeployStatusRoute(this);
     this._createGiudicoDeployStatusPut(this);
+    this._createGiudicoDeployStatusAPI(this);
     this._handleError(this);
 };
 
@@ -30,6 +31,54 @@ JobsEng.prototype = {
 
     getRouter: function () {
         return this.router;
+    },
+
+    _createGiudicoDeployStatusAPI: function (self) {
+        self.router.get('/api/jobs/eng/giudico/deploy-status', function (req, res) {
+            console.log('%s: Received request for: "/jobs/eng/giudico/deploy-status"',
+                new Date(Date.now()));
+            if(!req.query.lastTime) {
+                res.send({status: 'error', data: "Query parameter 'lastTime': long is required"})
+            }
+
+            var minTimestamp = new Date(+req.query.lastTime).toLocaleString('it-IT', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                timeZone: 'Europe/Rome'
+            });
+
+            console.log(req.query.lastTime, minTimestamp);
+
+            self.DATABASE.collection(JobsEng.GIUDICO_DEPLOY_STATUS).find({}).toArray(function (err, docs) {
+                if (self._handleDBError(err, res)) return;
+
+                var docsFiltered = docs.
+                    map(function (el) {
+                        el.timestamp = new Date(el.timestamp).toLocaleString('it-IT', {
+                            year: 'numeric',
+                            month: '2-digit',
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            timeZone: 'Europe/Rome'
+                        });
+                        return el;
+                    })
+                    .filter( function(el) {
+                        return el.timestamp > minTimestamp;})
+                    .map( function (value) {
+                        delete value._id;
+                        return value;
+                    });
+
+                res.send({status: 'ok', data: docsFiltered});
+            });
+        });
     },
 
     _createGiudicoDeployStatusRoute: function (self) {
