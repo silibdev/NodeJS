@@ -1,9 +1,5 @@
 # Welcome to my personal NodeJS server!
-##### You can find this server hosted by openshift [here](http://nodejs-localgroup.7e14.starter-us-west-2.openshiftapps.com).
-
-## Openshift configuration
-On my github I added a second pushurl (pointing the openshift repo) so that I can work just with
-one and have both repos always up to date. 
+##### You can find this server hosted by heroku [here](https://silibcloud.herokuapp.com/).
 
 ## Developing
 If you want to try it locally you will need NodeJS > 6.10.0 and an instance of [MongoDB](https://docs.mongodb.com/manual/administration/install-community/).
