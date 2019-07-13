@@ -1960,20 +1960,24 @@ window.onkeyup = function (e) {
 </head>
 <body onload="init()" style="background-color:#DDD">
 
+	<a style="border: .1rem rgba(44, 0, 159, 0.79) solid;border-radius: .5rem;padding: .2rem;font-size: x-large;position: fixed;right: .3rem; top: .3rem;" href="/">HOME</a>
+
 	<p id="message" style="font-weight:bold">Fabio Siliberto and Carlotta Gentiluomo project: An hollandish landscape.</p>
 
 	<p>
 	</p>
 
-	<div>
-	    <canvas width=800 height=800 id="glcanvas" style="background-color:blue"></canvas>
-		<br/>Witout the rotator use w,s,a,d,i,k for moving. With the rotator click and drag the scene.<br/>Options:&nbsp;&nbsp;
-		<!--<br/>Choose the shader:<br/>
-		<input type="radio" name="shader_type" value="phong" checked="checked"/>Phong ||
-		<input type="radio" name="shader_type" value="starting"/>Starting<br/>-->
-		<input type="checkBox" name="animating" checked="checked" />Animation &nbsp;&nbsp;&nbsp;&nbsp;
-		<input type="checkBox" name="rotator" />Rotator
-		<!--<input type="checkBox" name="MoreObjects" />More objects<br/>-->
+	<div style="display: flex; flex-wrap: wrap">
+		<div style="flex: 0 0 auto;">
+	    	<canvas width=800 height=800 id="glcanvas" style="background-color:blue"></canvas>
+		</div>
+
+		<div style="margin-left: 1rem; flex: 1 1 10rem;">
+			Without the rotator use w,s,a,d,i,k for moving.<br>
+			With the rotator click and drag the scene.<br/>Options:&nbsp;&nbsp;
+			<input type="checkBox" name="animating" checked="checked" />Animation &nbsp;&nbsp;&nbsp;&nbsp;
+			<input type="checkBox" name="rotator" />Rotator
+		</div>
 	</div>
 </body>
 </html>
