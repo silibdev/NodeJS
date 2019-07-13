@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ProjectIG</title>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script>
+<script type="text/javascript" src="jquery-2.1.1.min.js"></script>
+
+<script type="x-shader/x-vertex" id="vshader">	 
+	 attribute vec3 coords;
+     uniform mat4 modelview;
+     uniform mat4 projection;
+     attribute vec3 normal;
+     uniform mat3 normalMatrix;
+     uniform vec4 color;
+     varying vec4 vColor;
+
+     //for cutting
+	 varying float cut;
+	 uniform float ycut;
+	 uniform bool cutObject;
+
+     void main() {
+        vec4 coords = vec4(coords,1.0);
+        vec4 transformedVertex = modelview * coords;
+
+        //cut
+        if(cutObject == true && coords.z > ycut) cut= 1.0;
+        else cut = 0.0;
+
+        gl_Position = projection * transformedVertex;
+        vec3 unitNormal = normalize(normalMatrix*normal);
+        float multiplier = abs(unitNormal.z);
+        vColor = vec4( multiplier*color.r, multiplier*color.g, multiplier*color.b, color.a );
+     }
+</script>
+<script type="x-shader/x-vertex" id="vPhongShader">
+	 
+	attribute vec3 coords;
+    uniform mat4 modelview;
+    uniform mat4 projection;
+    attribute vec3 normal;
+    uniform mat3 normalMatrix;
+    uniform vec4 color;
+    varying vec4 vColor;	 
+	varying vec3 vnormal;
+	varying vec3 vpos;
+     
+	//TEXTURE
+	attribute vec2 aTexCoord;
+	varying vec2 vTextureCoord;
+
+	//for cutting
+	varying float cut;
+	uniform float ycut;
+	uniform bool cutObject;
+	
+	void main() {
+        vec4 vcoords = vec4(coords,1.0);
+
+        vec4 transformedVertex = modelview * vcoords;
+		
+		//cut
+        if(cutObject == true && vcoords.z > ycut) cut= 1.0;
+        else cut = 0.0;
+
+		vpos = vec3(modelview * vcoords);
+        vnormal = normalize(normalMatrix*normal);
+        
+		gl_Position = projection * transformedVertex;
+		vColor=color;
+		
+		vTextureCoord = aTexCoord;
+	}
+</script>
+<script type="x-shader/x-fragment" id="fshader">
+     precision mediump float;
+     varying vec4 vColor;
+
+     //for cutting
+   	 varying float cut;
+ 
+     void main() {
+     	 if(cut == 0.0){
+         	gl_FragColor = vColor;
+         }else{
+         	discard;
+         }
+     }
+</script>
+<script type="x-shader/x-fragment" id="fPhongShader">
+    precision mediump float;
+    varying vec4 vColor;
+ 	varying vec3 vnormal;
+	varying vec3 vpos;
+	 
+	uniform bool luciAccese;
+	uniform bool sole;
+
+	const int uNumPos=6; // cambia anche il numero nel javascript
+	uniform vec3 uLightPosition[uNumPos];
+	vec3 uLightColor = vec3(1.0,1.0,1.0)*0.5;
+
+	uniform vec3 uLightDirection;
+	//vec3 uDirectionalColor = vec3(1.0,1.0,1.0);
+	uniform vec3 uDirectionalColor;
+
+	const int uNumSpot = 10; // cambia anche il numero nel javascript
+	uniform vec3 uSpotLightPos[uNumSpot];
+	uniform vec3 uSpotLightDir[uNumSpot];
+	vec3 uSpotColor = vec3(1.0,1.0,1.0);
+	float cutOff = 0.8;
+	float fallOff = 80.0;
+
+	//vec3 vAmbient= vec3(1.1,1.1,1.1);
+	vec3 vAmbient= vec3(1.0,1.0,1.0)*0.1;
+	vec3 vSpecular= vec3(1.0,1.0,1.0);
+	vec3 vDiffuse= vec3(1.0,1.0,1.0);
+	vec3 ovunque= vec3(1.0,1.0,1.0)*0.07;
+	
+	// shininess exponent
+	float uShininess = 32.0;
+	// amount of ambient component
+	float uKa = 0.1;
+	// amount of diffuse component
+	float uKd = 0.8;
+	// amount of specular component
+	float uKs = 0.4;
+
+	//texture
+	uniform bool uHaveTexture;
+	varying vec2 vTextureCoord;
+	uniform sampler2D uSampler;
+
+	//for cutting
+	varying float cut;
+ 
+	vec3 phongShading(vec3 L, vec3 N, vec3 V, vec3 lightColor){
+
+		vec3 ambient = vAmbient * lightColor;
+		
+		float NdotL = max(0.0, dot(N, L));
+		vec3 diffuse = (vDiffuse * lightColor) * NdotL;
+
+		// specular component
+		vec3 R = (2.0 * NdotL * N) - L;
+		float RdotV = max(0.0, dot(R, V));
+		float spec = pow(RdotV, uShininess);
+		vec3 specular = (vSpecular * lightColor) * spec;
+		vec3 contribution = uKa * ambient + uKd * diffuse + uKs * specular;
+		return contribution;
+	}
+	
+	void main(){
+		// normalize interpolated normal
+		vec3 N = normalize(vnormal);
+		vec3 V = normalize(-vpos);
+
+		//finalLight
+		vec3 finalLight= vec3(0.0,0.0,0.0);
+		vec3 lc = vec3(0.0,0.0,0.0);
+
+		//directional light -----------------------------------
+		vec3 L = normalize(uLightDirection);
+
+		float NdotL = max(0.0, dot(N, L));
+
+		finalLight += phongShading(N,L,V,uDirectionalColor);
+		//------------------------------------------------------
+
+		if (luciAccese){
+			//positional light ------------------------------------
+			float r=0.0;
+			
+			for(int i = 0 ; i < uNumPos; i ++){
+				L = normalize(uLightPosition[i] - vpos);
+				 
+				r = length(uLightPosition[i]-vpos);
+
+				lc = uLightColor/(1.0*3.14*3.14*r*r);
+				 
+				finalLight +=phongShading(N,L,V,lc);
+			}
+			//-----------------------------------------------------
+					 
+			//spotlight--------------------------------------------
+			for(int i = 0 ; i < uNumSpot; i ++){
+				float amp = 0.5;
+				if(i<4)	amp = 2.0;
+
+				vec3 spotDir = normalize(uSpotLightDir[i]);
+
+				L = normalize(uSpotLightPos[i]-vpos);
+
+				r = length(uSpotLightPos[i]-vpos);
+
+				float NdotLSpot = dot(spotDir,L);
+
+				if(NdotLSpot > cutOff){
+					NdotLSpot = pow(NdotLSpot,fallOff);
+				}else{
+					NdotLSpot = 0.0;
+				}
+
+				lc = uSpotColor * NdotLSpot/(0.005*3.14*3.14*r*r);
+
+				finalLight += phongShading(N,L,V,lc*amp);
+			}
+			//-----------------------------------------------------
+		}
+
+		if(cut == 0.0){
+			if(uHaveTexture){
+				gl_FragColor = texture2D(uSampler, vTextureCoord) * vec4(finalLight+ovunque, 1.0)*2.0;
+			}else{
+				gl_FragColor  = vec4(finalLight+ovunque, 1.0)*vColor*2.0;
+			}
+		}else{
+			discard;
+		}
+
+		//if(cut == 1.0) discard;
+		//gl_FragColor = vColor;
+	 }  
+</script>
+<script type="text/javascript" src="gl-matrix.js"></script>
+<script type="text/javascript" src="basic-objects.js"></script>
+<script type="text/javascript" src="simple-rotator.js"></script>
+
+<script type="text/javascript">
+
+"use strict";
+
+var shaderNumber=0;
+
+$(document).ready( function (){
+	$('input[type=radio][name=shader_type]').change(function() {
+      if(this.value == 'phong') shaderNumber = 0;
+	  else if (this.value == 'starting')shaderNumber = 2;
+	  //console.debug(shaderNumber);
+	  init();
+	  });
+	$('input[type=checkBox][name=animating]').change(function() {
+      stopAnimation = !stopAnimation;
+      //animate = !animate;
+      //setAnimating(animate);
+	  //console.debug(animate);
+	  //init();
+	  });
+	$('input[type=checkBox][name=rotator]').change(function() {
+      useRotator = !useRotator;
+	  //console.debug(animate);
+	  init();
+	  });
+	$('input[type=checkBox][name=MoreObjects]').change(function() {
+	  bolle=!bolle;
+	  if(bolle) numFiori=100;
+	  else numFiori=100;
+	  firstF=true;
+	  });
+});
+
+var gl;   // The webgl context.
+
+var aCoords;           // Location of the coords attribute variable in the shader program.
+var aCoordsBuffer;     // Buffer to hold coords.
+var aNormal;           // Location of the normal uniform in the shader program.
+var aNormalBuffer;     // Buffer to hold normal vectors.
+var indexBuffer;       // Buffer to hold indices for gl.drawElements
+var uColor;            // Location of the color uniform variable in the shader program.
+var uProjection;       // Location of the projection uniform matrix in the shader program.
+var uModelview;        // Location of the modelview uniform matrix in the shader program.
+var uNormalMatrix;     // Location of the normalMatrix uniform matrix in the shader program.
+
+var projection = mat4.create();   // projection matrix
+var modelview = mat4.create();    // modelview matrix
+var normalMatrix = mat3.create(); // matrix, derived from modelview matrix, for transforming normal vectors
+
+var rotator;   // A SimpleRotator object to enable rotation by mouse dragging.
+
+var frameNumber = 0;  // frame number during animation (actually only goes up by 0.5 per frame)
+
+var torus, sphere, cone, cylinder, disk, ring, cube;  // basic objects, created using function createModel
+var coneCemento, sphereTegole, cylinderVetro, ringLegno, cubeLegno, cubeLegno2, sphereMetallo, sphereLegno, cylinderLegno, cubeTela, coneLegno;
+var cubeErba, sphereAcqua, cubeAcqua, cylinderMetallo, coneLampione, cilindroFaretto, conoFaretto, cilindroFaretto, chiomaAlbero, troncoAlbero;
+var sferaFaretto, sphereCielo, cylinderTegole, cubeMattoni;
+
+var modelview;                  // The current modelview matrix
+var matrixStack = [];           // A stack of matrices for implementing hierarchical graphics.
+
+var currentColor = [1,1,1,1];   // The current drawing color; objects are rendered using this color.
+
+var fromPoint= [0,2,-22];
+var toPoint= [0,2,0]; // questo è dove è la telecamera
+var upVector= [0,1,0];
+
+function draw() {
+    //if(frameNumber > 100) setAnimating(false);
+	
+	gl.clearColor(0,0,0,1);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    
+    mat4.perspective(projection, Math.PI/4, 1, 0.1, 500);			//assigns to the matrix projection the transformation with frustum
+																//defined by an eye angle of 45 degrees (pi/4), ratio of width/height
+																// of 1, near plane 1 and far plane 50
+    gl.uniformMatrix4fv(uProjection, false, projection );		//assigns the value of the matrix projection to the uniform matrix uProjection
+	var trans=0.0;
+	if(useRotator){
+    	modelview = rotator.getViewMatrix();						//computes the modelview from the position of the rotator
+    }else{
+	    //console.log("-------" + modelview);
+	    mat4.lookAt(modelview, toPoint, fromPoint, upVector);
+	    //console.log(modelview);
+
+	    mat4.rotate(modelview,modelview,-pitch * Math.PI / 180, [1, 0, 0]);
+	    mat4.rotate(modelview,modelview,-yaw * Math.PI / 180, [0, 1, 0]);
+	    mat4.translate(modelview,modelview, [-xPos, -yPos, -zPos]);
+	    trans = -12;
+	}
+
+    mat3.normalFromMat4(normalMatrix, modelview);				//computes the normalMatrix (used to multiply the normals) from the modelview 
+
+	pushMatrix();
+	var s = 1;
+    mat4.translate(modelview,modelview, [-3.7, 0, trans]);
+	mat4.rotate(modelview,modelview,(-20)/180*Math.PI,[0,1,0]);
+    mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+    holland();
+    //windmillDoor();
+	popMatrix();
+
+	pushMatrix();
+	var s = 1;
+    mat4.translate(modelview,modelview, [-3.7, 0, trans]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+    mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+    sphereCielo.render();
+	popMatrix();
+
+	iSpot=0;
+	iPos=0;
+}
+
+var iSpot=0;
+var iPos=0;
+	
+// mat4.translate(modelview,modelview,[0,2,0]);
+// mat4.scale(modelview,modelview,[1.5,4,1.5]);
+// mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+
+var posZatX=4.5;
+var posZatY=0;
+var orZat=1;
+function holland(){
+	pushMatrix();
+	currentColor = [1.1,0.1,0.1,1];
+	var s = 0.1;
+	mat4.translate(modelview,modelview,[0,0,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	sphere.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.1,0.2,0.1,1];
+	s=2.5;
+	var h=2.5;
+	mat4.scale(modelview,modelview,[1*s,1*h,1*s]);
+	base();
+	var hb=0.1*h/2;
+	popMatrix();
+
+	pushMatrix();
+	s=1.2;
+	var hWind=2;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[-1.5,2,(hWind/2)*s+hb]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	windmill(hWind,Math.abs(Math.sin(angle/2))*60);
+	popMatrix();
+
+	pushMatrix();
+	s=0.15;
+	var dh =-(8*Math.cos(40)+0.7)*s; // deriva dall'altezza del ponte
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[4.95,0,dh+hb]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	bridge();
+	popMatrix();
+
+	pushMatrix();
+	s=0.3;
+	mat4.translate(modelview,modelview,[2,hb,0.5]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	lampione();
+	popMatrix();
+
+	pushMatrix();
+	s=0.3;
+	mat4.translate(modelview,modelview,[8,hb,-0.5]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,-1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	lampione();
+	popMatrix();
+
+
+	//creazione fiori
+	if(firstF){
+		creaPosizioniFiori(-3,-3.5,5,3.5);
+		firstF = false;
+	}
+
+	for(var i =0 ; i<numFiori ; i++){
+		pushMatrix();
+		s=sF[i];
+		mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+		mat4.translate(modelview,modelview,[xF[i],yF[i],hb]);
+		mat4.rotate(modelview,modelview,(90+dev[i])/180*Math.PI,[0,0,1]);
+		mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+		flower(0.4,dev2[i],i);
+		popMatrix();
+	}
+
+	s=0.15;
+	pushMatrix();
+	mat4.translate(modelview,modelview,[4.95,hb/4,posZatY]);
+	if(posZatY>2.349999 || posZatY<-2.349999) {
+		if((angle-3.14/2)>3.14 ){
+			mat4.rotate(modelview,modelview,-(orZat+1)/2*3.14,[0,1,0]);
+			posZatY=orZat*2.34;
+			orZat*=-1;
+		}
+		else mat4.rotate(modelview,modelview,-(angle-orZat*3.14/2),[0,1,0]);
+		}
+	else {
+		posZatY=Math.sin(orZat*angle)*2.35;
+		mat4.rotate(modelview,modelview,(orZat/2+1.5)*3.14,[0,1,0]);
+	}
+	mat4.translate(modelview,modelview,[0.65,0,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	zattera();
+	popMatrix();
+
+	pushMatrix();
+	s=0.7;
+	mat4.translate(modelview,modelview,[6.7,hb,3.1]);
+	mat4.rotate(modelview,modelview,(10)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	creaAlbero();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[9,hb,2.5]);
+	mat4.rotate(modelview,modelview,(101)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	creaAlbero();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[10,hb,0]);
+	mat4.rotate(modelview,modelview,(189)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	creaAlbero();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[8.7,hb,-2.5]);
+	mat4.rotate(modelview,modelview,(-2)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	creaAlbero();
+	popMatrix();	
+	pushMatrix();
+	mat4.translate(modelview,modelview,[7.2,hb,-1.7]);
+	mat4.rotate(modelview,modelview,(50)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	creaAlbero();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[2,hb,-2]);
+	mat4.rotate(modelview,modelview,(99)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	creaAlbero();
+	popMatrix();
+
+}
+
+//crea cylinderMetallo
+function lampione(inclinazione){
+	inclinazione = inclinazione || 0;
+
+	pushMatrix();
+	currentColor = [0.3,0.3,0.3,1];
+	var h=5,l=0.2;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[0,0,h/2]);
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+	cylinderMetallo.render();
+	popMatrix();
+	
+	pushMatrix();
+	var s2 = l/2;
+	mat4.translate(modelview,modelview,[0,h,0]);
+	mat4.scale(modelview,modelview,[1*s2,1*s2,1*s2]);
+	sphereMetallo.render();
+	popMatrix();
+
+	pushMatrix();
+	var h2=h/3,l2=l;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[0,h,h2/2]);
+	mat4.scale(modelview,modelview,[1*l2,1*l2,1*h2]);
+	cylinderMetallo.render();
+	popMatrix();
+
+	pushMatrix();
+	var h3=h/2.5,l3=l;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,-1,0]);
+	var inc=60;
+	mat4.translate(modelview,modelview,[0,h-Math.sin((inc)/180*Math.PI)*h3/2,-Math.cos((inc)/180*Math.PI)*h3/2]);
+	mat4.rotate(modelview,modelview,(inc)/180*Math.PI,[1,0,0]);
+	mat4.scale(modelview,modelview,[1*l3,1*l3,1*h3]);
+	cylinderMetallo.render();
+	popMatrix();
+
+	pushMatrix();
+	var h3=1,l3=0.5;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[h2,0,h]);
+	mat4.rotate(modelview,modelview,(inclinazione)/180*Math.PI,[0,-1,0]);
+	mat4.scale(modelview,modelview,[1*l3,1*l3,1*h3]);	
+
+	var normM = mat3.create();
+	mat3.normalFromMat4(normM,modelview);
+	vec3.transformMat3(spotDirT[iSpot],[0,0,1],normM);
+	vec3.transformMat4(spotPosT[iSpot],[0,0,0],modelview);
+	//console.log(iSpot);
+	iSpot+=1;
+	
+	coneLampione.render();
+	popMatrix();
+}
+
+var firstA =true;
+var bolle=false;
+function base(){
+	pushMatrix();
+	currentColor = [0.1,0.7,0.1,1];
+	var l=3,p=3,h=0.1;
+	mat4.translate(modelview,modelview,[0,0,0]);
+	mat4.scale(modelview,modelview,[1*l,1*h,1*p]);
+	cubeErba.render();
+	popMatrix();
+	
+	pushMatrix();
+	var h2=h/Math.sqrt(2),l2=h2*2,p2=p;
+	mat4.translate(modelview,modelview,[l/2,0,0]);
+	mat4.scale(modelview,modelview,[1*l2,1*h2,1*p2]);
+	mat4.rotate(modelview,modelview,(45)/180*Math.PI,[0,0,1]);
+	cubeErba.render();
+	popMatrix();
+	
+	pushMatrix();
+	var s=0.2;
+	var inclinazione= Math.abs(Math.cos(angle*2)*45);
+	//mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,0,1]);
+	mat4.translate(modelview,modelview,[-l/2,h/2,-p/2]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	mat4.rotate(modelview,modelview,(-45)/180*Math.PI,[0,1,0]);
+	lampione(inclinazione);
+	popMatrix();
+	
+	pushMatrix();
+	mat4.translate(modelview,modelview,[-l/2,h/2,p/2]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	mat4.rotate(modelview,modelview,(45)/180*Math.PI,[0,1,0]);
+	lampione(inclinazione);
+	popMatrix();
+	
+	//ACQUA
+	pushMatrix();
+	var s=0.1;
+	var l3=l*1.5/5,p3=p+2*h/3,h3=h/2;
+	currentColor = [0.4,0.4,0.9,1];
+	mat4.rotate(modelview,modelview,(0)/180*Math.PI,[1,0,0]);
+	if(bolle){ 
+		s=0.07;
+		mat4.translate(modelview,modelview,[l/2+l2*Math.sqrt(2)/4,-0.4/2*s,-p/2]);
+		mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+		//acquaBolle(20,67);
+    	acquaBolle2(15,55,1,0.4);
+	}
+	else{
+		var mov=Math.cos(angle*4)*h/3;
+		mat4.translate(modelview,modelview,[l/2+l2*Math.sqrt(2)/4+l3/2,0,mov]);
+		mat4.scale(modelview,modelview,[1*l3,1*h3,1*p3]);
+		cubeAcqua.render();
+	}
+	popMatrix();
+	
+	pushMatrix();
+	currentColor = [0.1,0.7,0.1,1];
+	var h4=h2,l4=l2,p4=p;
+	mat4.translate(modelview,modelview,[l/2+l2*Math.sqrt(2)/4+l3,0,0]);
+	mat4.scale(modelview,modelview,[1*l4,1*h4,1*p4]);
+	mat4.rotate(modelview,modelview,(45)/180*Math.PI,[0,0,1]);
+	cubeErba.render();
+	popMatrix();
+	pushMatrix();
+	var l5=l*3/5,p5=p,h5=h;
+	mat4.translate(modelview,modelview,[l/2+l2*Math.sqrt(2)/4+l3+l5/2,0,0]);
+	mat4.scale(modelview,modelview,[1*l5,1*h5,1*p5]);
+	cubeErba.render();
+	popMatrix();
+	
+	pushMatrix();
+	s=0.2;
+	mat4.translate(modelview,modelview,[l/2+l2*Math.sqrt(2)/4+l3+l5,h5/2,-p5/2]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	mat4.rotate(modelview,modelview,(-45-90)/180*Math.PI,[0,1,0]);
+	lampione(inclinazione);
+	popMatrix();
+	
+	pushMatrix();
+	mat4.translate(modelview,modelview,[l/2+l2*Math.sqrt(2)/4+l3+l5,h5/2,p5/2]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	mat4.rotate(modelview,modelview,(45+90)/180*Math.PI,[0,1,0]);
+	lampione(inclinazione);
+	popMatrix();
+
+	//cornice
+	pushMatrix();
+	currentColor = [0.9,0.4,0.1,1];
+	var d=h*1.2,p5=p+4*d/3;
+	mat4.translate(modelview,modelview,[-l/2-d/3,0,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,-1,0]);
+	mat4.scale(modelview,modelview,[1*d,1*p5,1*d]);
+	cubeLegno2.render();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[l/2+l2*Math.sqrt(2)/4+l3+l5+d/3,0,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,-1,0]);
+	mat4.scale(modelview,modelview,[1*d,1*p5,1*d]);
+	cubeLegno2.render();
+	popMatrix();
+	
+	pushMatrix();
+	var l5=l+l2+l3+l5-2*d/3;
+	mat4.translate(modelview,modelview,[l5/2-l/2,0,-(p/2+d/6)]);
+	mat4.scale(modelview,modelview,[1*l5,1*d,1*d]);
+	cubeLegno2.render();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[l5/2-l/2,0,+(p/2+d/6)]);
+	mat4.scale(modelview,modelview,[1*l5,1*d,1*d]);
+	cubeLegno2.render();
+	popMatrix();
+}
+
+var posAcqua;
+function acquaBolle(lungX,lungY){
+	var s = 0.15;
+	var x = 0, y =0,k=0;
+
+	if(firstA == true){
+		posAcqua = new Array(lungX*lungY*4);
+		for(var i=0; i<lungX*lungY*4;i++){
+			posAcqua[i]=Math.random();
+			//posAcqua[i]=Math.random()*s-s/2;
+		}
+		firstA=false;
+	}
+
+	for(var i = 1 ; i<lungX*2; i++){		
+		x=i*s*1.5;
+		for(var j=1; j<lungY*2; j++){	
+			y=j*s*1.5;
+			pushMatrix();
+			currentColor = [0.2,0.2,0.7,1];
+			var pos = Math.cos(angle*4+posAcqua[k]*x*y)*s/2;
+			if(useRotator) mat4.translate(modelview,modelview,[x,pos,y]);
+			else mat4.translate(modelview,modelview,[x,Math.sin(angle*4+y+x)*s/2,y]);
+			mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+			sphereAcqua.render();
+			popMatrix();
+			k+=1;
+		}
+		y=0;
+	}
+}
+
+var posAcqua2;
+function acquaBolle2(lungX,lungY,dist,s){
+	var x = 0, y =0,k=0;
+
+	if(firstA == true){
+		posAcqua2 = new Array(lungX*lungY*4);
+		for(var i=0; i<lungX*lungY*4;i++){
+			posAcqua2[i]=Math.random();
+			//posAcqua2[i]=Math.random()*s-s/2;
+		}
+		firstA=false;
+	}
+
+	//cutObject=true;
+	for(var i = 1 ; i<lungX*2; i++){		
+		x=i*s*dist;
+		for(var j=1; j<lungY*2; j++){	
+			y=j*s*dist;
+			pushMatrix();
+			currentColor = [0.2,0.2,0.7,1];
+			var oscillazione = Math.sqrt((y-10)*(y-10)+(x-5)*(x-5));
+			//var oscillazione =Math.sqrt(x*x+y*y);
+			var pos = Math.cos(angle)*s;
+			if(!useRotator) mat4.translate(modelview,modelview,[x,s/4*Math.cos(angle*10*posAcqua2[k]+posAcqua2[k]),y]);
+			else mat4.translate(modelview,modelview,[x,Math.cos(angle*4-oscillazione)*s/2,y]);
+			//mat4.rotate(modelview,modelview,(180)/180*Math.PI,[1,0,0]);
+			mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+			sphereAcqua.render();
+			popMatrix();
+			k+=1;
+		}
+		y=0;
+	}
+	//cutObject=false;
+}
+
+function zattera(){
+	var x=0;
+	pushMatrix();
+	var s=0.5,l=5;
+	var numPali=7;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[-s*(numPali-1)/2,-s/2,0]);
+	for(var i = 0 ; i<numPali ; i ++){	
+		pushMatrix();
+		currentColor=[0.6,0.4,0.4,1];
+		mat4.rotate(modelview,modelview,(0)/180*Math.PI,[-1,0,0]);
+		mat4.translate(modelview,modelview,[x,0,0]);
+		mat4.scale(modelview,modelview,[1*s,1*s,1*l]);
+		cylinderLegno.render();
+		popMatrix();
+
+		pushMatrix();
+		currentColor=[0.2,0.5,0.6,1];
+		var s2=s,l2=0.5;
+		mat4.translate(modelview,modelview,[x,0,-(l/2+l2/2)]);
+		mat4.rotate(modelview,modelview,(180)/180*Math.PI,[-1,0,0]);
+		mat4.scale(modelview,modelview,[1*s2,1*s2,1*l2]);
+		coneLegno.render();
+		popMatrix();
+		pushMatrix();
+		currentColor=[0.2,0.5,0.6,1];
+		mat4.rotate(modelview,modelview,(0)/180*Math.PI,[-1,0,0]);
+		mat4.translate(modelview,modelview,[x,0,+(l/2+l2/2)]);
+		mat4.scale(modelview,modelview,[1*s2,1*s2,1*l2]);
+		coneLegno.render();
+		popMatrix();
+
+		x+=s;
+	}
+	popMatrix();
+
+	pushMatrix();
+	var s3=0.6;
+	mat4.rotate(modelview,modelview,(0)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[0,0,s/2]);
+	mat4.scale(modelview,modelview,[1*s3,1*s3,1*s3]);
+	vela();
+	popMatrix();
+}
+
+function vela(){
+	pushMatrix();
+	currentColor=[0.6,0.4,0.4,1];
+	var s=0.5,l=7;
+	mat4.rotate(modelview,modelview,(0)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[0,0,l/2]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*l]);
+	cylinderLegno.render();
+	popMatrix();
+
+	pushMatrix();
+	var s2=s,l2=7;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,-1,0]);
+	mat4.translate(modelview,modelview,[l-s*0.6,-s2/2,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*l]);
+	cylinderLegno.render();
+	popMatrix();
+	pushMatrix();
+	var s2=s,l2=7;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,-1,0]);
+	mat4.translate(modelview,modelview,[l/2-s*0.6,-s2/2,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*l]);
+	cylinderLegno.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.3,0.7,0.5,1];
+	var l3=l*0.99,p3=0.1,h3=l/2;
+	mat4.rotate(modelview,modelview,(0)/180*Math.PI,[1,0,0]);
+	mat4.translate(modelview,modelview,[0,-s/2,3*l/4-s2/2]);
+	mat4.scale(modelview,modelview,[1*l3,1*p3,1*h3]);
+	cubeTela.render();
+	popMatrix();	
+}
+
+function bridge(){
+	pushMatrix();
+	currentColor = [0.1,0.1,0.5,1];
+	var h=1,l=25.1,p=6;
+	mat4.translate(modelview,modelview,[0,0,0]);
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[-1,0,0]);
+	//mat4.rotate(modelview,modelview,(180)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*l,1*p,1*h]);
+	cubeLegno2.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.5,0.1,0.5,1];
+	var h2=h,l2=8,p2=p-0.001;
+	var incl= 40/180*Math.PI;
+	mat4.translate(modelview,modelview,[-l/2,p/2,h/2]);
+	mat4.rotate(modelview,modelview,-incl,[0,1,0]);
+	mat4.translate(modelview,modelview,[-l2/2,-p2/2,-h2/2]);
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*l2,1*p2,1*h2]);
+	cubeLegno2.render();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[l/2,-p/2,h/2]);
+	mat4.rotate(modelview,modelview,incl,[0,1,0]);
+	mat4.translate(modelview,modelview,[l2/2,p2/2,-h2/2]);
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*l2,1*p2,1*h2]);
+	cubeLegno2.render();
+	popMatrix();
+
+	//piloni
+	pushMatrix();
+	currentColor = [0.1,0.5,0.5,1];
+	var h3=h*2,l3=l2*Math.cos(incl)*1.1,p3=p-0.001;
+	mat4.translate(modelview,modelview,[-l/2,p/2,h/2-0.001]);
+	mat4.rotate(modelview,modelview,(-90)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[-l3/2,-p3/2,-h3/2]);
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*l3,1*p3,1*h3]);
+	cubeLegno2.render();
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[l/2,-p/2,h/2-0.001]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[l3/2,p3/2,-h3/2]);
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*l3,1*p3,1*h3]);
+	cubeLegno2.render();
+	popMatrix();
+
+	//ringhiere
+	pushMatrix();
+	var s=0.7;
+	var numPali=9;
+	mat4.rotate(modelview,modelview,(0)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[-(l/2+l2*Math.cos(incl))+0.4,-(p/2-0.3),-(l2*Math.sin(incl))+0.3]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	ringhiera(numPali,incl);
+	popMatrix();
+	pushMatrix();
+	mat4.rotate(modelview,modelview,(0)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[-(l/2+l2*Math.cos(incl))+0.4,+(p/2-0.3),-(l2*Math.sin(incl))+0.3]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	ringhiera(numPali,incl);
+	popMatrix();
+
+	pushMatrix();
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[0,0,1]);
+	mat4.translate(modelview,modelview,[-(l/2+l2*Math.cos(incl))+0.4,-(p/2-0.3),-(l2*Math.sin(incl))+0.3]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	ringhiera(numPali,incl);
+	popMatrix();
+	pushMatrix();
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[0,0,1]);
+	mat4.translate(modelview,modelview,[-(l/2+l2*Math.cos(incl))+0.4,+(p/2-0.3),-(l2*Math.sin(incl))+0.3]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	ringhiera(numPali,incl);
+	popMatrix();
+
+	pushMatrix();
+	numPali=35;
+	mat4.translate(modelview,modelview,[-(l/2)+0.65,-(p/2-0.3),0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	ringhiera(numPali,0);
+	popMatrix();
+	pushMatrix();
+	mat4.translate(modelview,modelview,[-(l/2)+0.65,+(p/2-0.3),0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	ringhiera(numPali,0);
+	popMatrix();
+}
+
+function ringhiera(numPali,inclinazione){
+	var x=0,y=0;
+	var h=4,l=0.5;
+	var dx=2*l;
+	for(var i=0; i<numPali;i++){
+		pushMatrix();
+		currentColor = [0.3,0.7,0.5,1];
+		mat4.rotate(modelview,modelview,(0)/180*Math.PI,[-1,0,0]);
+		mat4.translate(modelview,modelview,[x,0,h/2+y]);
+		mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+		cylinderLegno.render();
+		popMatrix();
+		x+=dx;
+		y+=Math.tan(inclinazione)*dx;
+	}
+
+	pushMatrix();
+	var l2=(numPali)*l*2/Math.cos(inclinazione)+l*0.8;
+	var s = 0.7;
+	currentColor = [0.7,0.2,0.3,1];
+	var lungPali = numPali*l*2;
+	var dh=-0.65;
+	if(inclinazione==0) dh=0.05;
+	mat4.translate(modelview,modelview,[(numPali-1)/2,0,h+dh+Math.tan(inclinazione)*lungPali/2]);
+	mat4.rotate(modelview,modelview,Math.PI/2-inclinazione,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*l2]);
+	cubeLegno.render();
+	popMatrix();
+}
+
+var firstF=true;
+var numFiori=150;
+var xF = new Array(numFiori);
+var yF = new Array(numFiori);
+var sF = new Array(numFiori);
+var dev = new Array(numFiori);
+var dev2 = new Array(numFiori);
+var coloreFiore = new Array(numFiori);
+function creaPosizioniFiori(x,y,lx,ly){ 
+	for(var i =0 ; i<numFiori ; i++){
+		xF[i] = Math.random()*lx+x;
+		yF[i] = Math.random()*ly+y;
+		sF[i] = Math.random()*0.01+0.01;
+		dev[i] = Math.random()*20-10;
+		dev2[i] = ((sF[i]-0.01)/0.01)*15-7.5;
+		coloreFiore[i] = [Math.random(),Math.random(),Math.random(),1];
+		//coloreFiore[i] = [(xF[i]-x)/lx,(yF[i]-y)/ly,(sF[i]-0.01)/0.01,1];
+	}
+}
+
+function flower(rateR,devR,fiore){
+	var rate = rateR || 2;
+	var dev = devR || 0 ; 
+	var angle1 = Math.abs(Math.sin(angle/rate))*(25+dev);
+	var angle2 = Math.abs(Math.sin(angle/rate))*(15+dev);
+	
+	pushMatrix();
+	currentColor = [0.1,0.4,0.1,1];
+	var s=0.25;
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	sphere.render();
+	popMatrix();
+
+	pushMatrix();
+	var l=0.5,h=3;
+	mat4.rotate(modelview,modelview,(angle1)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[0,0,h/2]);
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+	cylinder.render();
+	popMatrix();
+
+	pushMatrix();
+	s=0.25;
+	mat4.rotate(modelview,modelview,(angle1)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[0,0,h]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	sphere.render();
+	popMatrix();
+
+	pushMatrix();
+	//currentColor = [0.1,1.0,1.1,1];
+	var l2=l,h2=h;
+	mat4.rotate(modelview,modelview,(angle1)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[0,0,h]);
+	mat4.rotate(modelview,modelview,(angle2)/180*Math.PI,[0,1,0]);
+	mat4.translate(modelview,modelview,[0,0,h/2]);
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+	cylinder.render();
+
+	pushMatrix();
+	currentColor = coloreFiore[fiore];
+	s=1;
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	mat4.translate(modelview,modelview,[0,h/6,0]);
+	mat4.scale(modelview,modelview,[1*s/l,1*s/h,1*s/l]);
+	coronaFiore();
+	popMatrix();
+
+	popMatrix();
+
+}
+
+function coronaFiore(){
+	
+	var numPet = 7;
+	//currentColor = [1.0,0.1,1.0,1];
+	for (var i = 0; i < numPet; i++) {
+		pushMatrix();
+		var l =1.5, p= 0.3, h=2;
+		mat4.rotate(modelview,modelview,(2*Math.PI/numPet)*i,[0,1,0]);
+		mat4.translate(modelview,modelview,[0,0,-h/2]);
+		mat4.scale(modelview,modelview,[1*l,1*p,1*h]);
+		cone.hasTexture =false;
+		cone.render();
+		popMatrix();
+	}
+
+	pushMatrix();
+	currentColor = [1.0,1.0,0.1,1];
+	var s = 0.4;
+	mat4.translate(modelview,modelview,[0,0,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s/1.5,1*s]);
+	sphere.render();
+	popMatrix();
+}
+
+function windmill(hWind, rotat){
+	var rotDoor = rotat || 30;
+	pushMatrix();
+	var h=hWind || 2, l=1, p=1;
+	currentColor = [0.5,0.5,0.5,1];
+	mat4.scale(modelview,modelview,[1*l,1*p,1*h]);
+	coneCemento.render();
+	popMatrix();
+
+	for(var i=0; i<1;i++){
+		for(var j = 0 ; j < 5;j++){
+			pushMatrix();
+			var s = 0.1;
+			mat4.translate(modelview,modelview,[-l/3+l*2*j/3,-l-0.4-1*i,-h/2]);
+			mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+			mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+			creaFaretto();
+			popMatrix();
+		}
+	}
+
+	// pushMatrix();
+	// mat4.translate(modelview,modelview,[+l/3,-l-0.4,-h/2]);
+	// mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	// mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	// creaFaretto();
+	// popMatrix();
+
+	pushMatrix();
+	currentColor = [0.5,0.1,0.1,1];
+	s = 0.6;
+	mat4.translate(modelview,modelview,[0,0,h/2]);
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	cutObject=true; ycut=0.0;
+	sphereTegole.render();
+	cutObject=false;
+	popMatrix();
+
+	pushMatrix();
+	var h2=0.001, l=s*2, p=s*2;
+	currentColor = [0.1,0.1,0.1,1];
+	mat4.translate(modelview,modelview,[0,0,h/2]);
+	mat4.scale(modelview,modelview,[1*l,1*p,1*h2]);
+	cylinderTegole.render();
+	popMatrix();
+	
+	//windows
+	for(var i = 0 ; i<3; i++){
+		pushMatrix();
+		mat4.rotate(modelview,modelview, (Math.PI*2/3)*i,[0,0,1]);
+
+		pushMatrix();
+		currentColor = [0.5,0.1,0.1,1];
+		var s = h*0.1/1.5;
+		var beta = Math.PI/2 - Math.atan(0.5/1.5)+0.05;
+		mat4.translate(modelview,modelview,[0,-(-0.45 + (1.5 - 0.5)*Math.sin(beta)),h/3]);
+		mat4.rotate(modelview,modelview, beta,[1,0,0]);
+		mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+		windmillWindow();
+		popMatrix();
+
+		popMatrix();
+	}
+
+	//door
+	pushMatrix();
+	s=h*0.2/1.5;
+	currentColor = [0.1,0.5,0.1,1];
+	mat4.translate(modelview,modelview,[-0.1,-0.87,-h/2]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	windmillDoor(rotDoor);
+	popMatrix();
+
+	//pale
+	pushMatrix();
+	s = 0.165;
+	mat4.translate(modelview,modelview,[0,-0.77,h*55/100]);
+	//mat4.rotate(modelview,modelview, (45)/180*Math.PI,[0,1,0]);
+	mat4.rotate(modelview,modelview, angle,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	windmillSails(h);
+	popMatrix();
+}
+
+function windmillSails(hPala){
+	pushMatrix();
+	currentColor = [0.5,0.1,0.1,1];
+	var s = 0.15;
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	sphereMetallo.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.1,0.3,0.9,1];
+	var h=3, l =0.2;
+	mat4.translate(modelview,modelview,[0,h/2,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+	cylinderLegno.render();
+	popMatrix();
+
+	for (var i = 0; i <4; i++) {
+		pushMatrix();
+		mat4.rotate(modelview,modelview,i*(Math.PI*2)/4,[0,1,0]);
+		pala(hPala);
+		popMatrix();
+	}
+}
+
+function pala(hPala){
+	pushMatrix();
+	currentColor = [0.1,0.3,0.9,1];
+	var h=hPala*4.45, l=0.2;
+	//mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.translate(modelview,modelview,[0,0,h/2]);
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+	cylinderLegno.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.1,0.3,0.9,1];
+	var h2=2;
+	mat4.translate(modelview,modelview,[-h2/2,0,h]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h2]);
+	cylinderLegno.render();
+	popMatrix();
+
+	pushMatrix();
+	s=0.1;
+	mat4.translate(modelview,modelview,[0,0,h]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+	sphereLegno.render();
+	popMatrix();
+
+	//cilindretti lato lungo
+	for(var i = 0; i <3 ; i++){
+		pushMatrix();
+		var h3=0.3;
+		mat4.translate(modelview,modelview,[-h3/2,0,2+(h/4)*i]);
+		mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,1,0]);
+		mat4.scale(modelview,modelview,[1*l,1*l,1*h3]);
+		cylinderLegno.render();
+		popMatrix();
+	}
+
+	//cilindretti lato corto
+	for(var i = 0; i <2 ; i++){
+		pushMatrix();
+		mat4.translate(modelview,modelview,[(-h2/2)*i-0.5,0,h-h3/2]);
+		mat4.scale(modelview,modelview,[1*l,1*l,1*h3]);
+		cylinderLegno.render();
+		popMatrix();
+	}
+
+	//tela
+	pushMatrix();
+	currentColor = [1,1,0.5,1];
+	var h4=h-1.5, l4 = h2-0.2, p4 = l/2;
+	mat4.translate(modelview,modelview,[-l4/2-0.2,0,h4/2+1.3]);
+	mat4.scale(modelview,modelview,[1*l4,1*p4,1*h4]);
+	cubeTela.render();
+	popMatrix();
+}
+
+function windmillDoor(rotation){
+	
+	pushMatrix();
+	currentColor = [0.1,0.1,0.1,1];
+	var h=2,l=1,p=1;
+	var h2=h-0.001,l2=l-0.001,p4=0.001;
+	mat4.translate(modelview,modelview,[l/2,p/2+p4/2,h/2]);
+	//mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,1,0]);
+	mat4.scale(modelview,modelview,[1*l,1*p,1*h]);
+	cubeMattoni.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.1,0.1,0.1,1];
+	mat4.translate(modelview,modelview,[l2/2,p4/2,h2/2]);
+	mat4.scale(modelview,modelview,[1*l2,1*p4,1*h2]);
+	cube.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [1.0,0.7,0.1,1];
+	var p2=0.05;
+	mat4.rotate(modelview,modelview,(-rotation)/180*Math.PI,[0,0,1]);
+	mat4.translate(modelview,modelview,[l/2,-p2/2,h/2]);
+	mat4.rotate(modelview,modelview,(180)/180*Math.PI,[1,0,0]);
+	mat4.scale(modelview,modelview,[1*l,1*p2,1*h]);
+	cubeLegno.render();
+	popMatrix();
+
+	//maniglia
+	pushMatrix();
+	currentColor = [1.0,0.7,0.1,1];
+	var l3=0.1,p3=0.025;
+	mat4.rotate(modelview,modelview,(-rotation)/180*Math.PI,[0,0,1]);
+	mat4.translate(modelview,modelview,[l-0.2,-p2/2-p3,h*2/5]);
+	mat4.scale(modelview,modelview,[1*l3,1*p3,1*p3]);
+	sphere.render();
+	popMatrix();
+}
+
+function windmillWindow(){
+	pushMatrix();
+	var h=0.1, l=2;
+	currentColor = [0.1,0.5,0.5,1];
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+	cylinderVetro.render();
+	popMatrix();
+
+	pushMatrix();
+	var h2=1, l2=0.25;
+	currentColor = [0.8,0.5,0.1,1];
+	mat4.translate(modelview,modelview,[0,0,h/2+0.01]);
+	mat4.scale(modelview,modelview,[1*l2,1*l2,1*h2]);
+	ringLegno.render();
+	popMatrix();
+
+	pushMatrix();
+	var h3=h, l3=0.15, p3=l-0.3;
+	currentColor = [0.8,0.5,0.1,1];
+	mat4.translate(modelview,modelview,[0,0,0.01]);
+	//mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*l3,1*p3,1*h3]);
+	cubeLegno.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.8,0.5,0.1,1];
+	mat4.translate(modelview,modelview,[0,0,0.01]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[0,0,1]);
+	mat4.scale(modelview,modelview,[1*l3,1*p3,1*h3]);
+	cubeLegno.render();
+	popMatrix();
+}
+
+function creaAlbero(){
+	pushMatrix();
+	currentColor = [1.0,0.7,0.1,1];
+	var h=2,l=0.3;
+	mat4.translate(modelview,modelview,[0,h/2,0]); // 10 0.5 0.01
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	mat4.scale(modelview,modelview,[1*l,1*l,1*h]);
+	troncoAlbero.render();
+	popMatrix();
+
+	//ramo
+	pushMatrix();
+	currentColor = [1.0,0.7,0.1,1];// 10 0.5 0.01 
+	mat4.translate(modelview,modelview,[0,h*2/3,-l-0.2]); 
+	mat4.rotate(modelview,modelview,(20)/180*Math.PI,[1,0,0]);
+	mat4.scale(modelview,modelview,[0.7*l,0.6*l,0.5*h]);
+	troncoAlbero.render();
+	
+	//pallocco ramo
+	var s = 0.5;
+	currentColor = [0.3,0.7,0.5,1];
+	mat4.translate(modelview,modelview,[0,0,-(0.5*h)/2]);
+	mat4.scale(modelview,modelview,[s/(0.7*l),s/(0.6*l),s/(0.5*h)]);
+	chiomaAlbero.render();
+	popMatrix();
+
+	pushMatrix();
+	mat4.translate(modelview,modelview,[-10,-0.5+h/2,-0.01]); // 10 0.5 0.01
+
+	pushMatrix();
+	currentColor = [0.3,0.7,0.5,1];
+	mat4.translate(modelview,modelview,[10,2,0.2]);
+	chiomaAlbero.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.3,0.7,0.5,1];
+	mat4.translate(modelview,modelview,[9.5,1.4,0.01]);
+	mat4.scale(modelview,modelview,[0.6,0.6,0.6]);
+	chiomaAlbero.render();
+	popMatrix();
+
+	pushMatrix();
+	currentColor = [0.3,0.7,0.5,1];
+	mat4.translate(modelview,modelview,[9.1,2,-0.2]); 
+	mat4.scale(modelview,modelview,[0.4,0.4,0.4]);
+	chiomaAlbero.render();
+	popMatrix();
+
+	popMatrix();
+}
+
+function creaFaretto(){
+
+	//cilindro di base
+	pushMatrix();
+	currentColor = [0.1,0.3,0.1,1];
+	var h = 1;
+	var l = 0.3;
+	mat4.translate(modelview,modelview,[0,h/2,0]); 
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	mat4.scale(modelview,modelview,[l,l,h]);
+	cilindroFaretto.render();
+	popMatrix();
+
+	//sfera luminosa sopra
+	pushMatrix();
+	currentColor = [5.0,5.0,5.0,1];
+	var k = 0.4;
+	mat4.translate(modelview,modelview,[0,h,0]);
+	mat4.scale(modelview,modelview,[k,k,k]);
+	vec3.transformMat4(positionalLightPos[iPos],[0,0,0],modelview);
+	iPos+=1
+	sferaFaretto.render();
+	popMatrix();
+
+	//cono di copertura
+	pushMatrix();
+	currentColor = [0.1,0.3,0.1,1];
+	var s = k*2*1.5;
+	mat4.translate(modelview,modelview,[0,h+k,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[s,s,k*1.5]);
+	conoFaretto.render();
+	popMatrix();
+
+}
+
+function normLamp(){
+	pushMatrix();
+	currentColor = [0.5,0.0,1.0,1.0];
+	mat4.translate(modelview,modelview,[0,0,0]);
+	mat4.scale(modelview,modelview,[0.05,2,0.05]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	cylinder.render();
+	popMatrix();
+	
+	pushMatrix();
+	currentColor = [1.0,0.1,0.1,1];
+	
+	var s=0.1;
+	mat4.translate(modelview,modelview,[0,1,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,0,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*s]);
+
+	vec3.transformMat4(positionalLightPos[iPos],[0,0,0],modelview);
+	iPos+=1
+	sphere.render();
+	popMatrix();
+}
+
+function spotLamp(){
+	pushMatrix();
+	currentColor = [0.5,0.1,1.0,1.0];
+	mat4.translate(modelview,modelview,[0,0,0]);
+	mat4.scale(modelview,modelview,[0.05,2,0.05]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[1,0,0]);
+	cylinder.render();
+	popMatrix();
+	
+	pushMatrix();
+	currentColor = [1.0,1.0,0.1,1];
+	
+	var s=0.2;
+	var h=0.4;
+	mat4.translate(modelview,modelview,[0,1,0]);
+	mat4.rotate(modelview,modelview,(90)/180*Math.PI,[-1,-1,0]);
+	mat4.scale(modelview,modelview,[1*s,1*s,1*h]);
+	
+	var normM = mat3.create();
+	mat3.normalFromMat4(normM,modelview);
+	vec3.transformMat3(spotDirT[iSpot],[0,0,1],normM);
+	vec3.transformMat4(spotPosT[iSpot],[0,0,0],modelview);
+	//console.log(iSpot);
+	iSpot+=1;
+	
+	cone.hasTexture = false;
+	cone.render();
+	cone.hasTexture = true;
+	popMatrix();
+}
+
+/*
+ *  Push a copy of the current modelview matrix onto the matrix stack.
+ */
+function pushMatrix() {
+    matrixStack.push( mat4.clone(modelview) );
+}
+
+/*
+ *  Restore the modelview matrix to a value popped from the matrix stack.
+ */
+function popMatrix() {
+    modelview = matrixStack.pop();
+}
+
+/*
+ *  Create one of the basic objects.  The modelData holds the data for
+ *  an IFS using the structure from basic-objects-IFS.js.  This function
+ *  creates VBOs to hold the coordinates, normal vectors, and indices
+ *  from the IFS, and it loads the data into those buffers.  The function
+ *  creates a new object whose properties are the identifies of the
+ *  VBOs.  The new object also has a function, render(), that can be called to
+ *  render the object, using all the data from the buffers.  That object
+ *  is returned as the value of the function.  (The second parameter,
+ *  xtraTranslate, is there because this program was ported from a Java
+ *  version where cylinders were created in a different position, with
+ *  the base on the xy-plane instead of with their center at the origin.
+ *  The xtraTranslate parameter is a 3-vector that is applied as a
+ *  translation to the rendered object.  It is used to move the cylinders
+ *  into the position expected by the code that was ported from Java.)
+ */
+function createModel(modelData, xtraTranslate) {
+    var model = {};
+    model.coordsBuffer = gl.createBuffer();
+    model.normalBuffer = gl.createBuffer();
+    model.indexBuffer = gl.createBuffer();
+	
+	//texture
+	model.texBuffer = gl.createBuffer();
+    model.hasTexture = false;
+    
+	model.count = modelData.indices.length;
+	if (xtraTranslate)
+        model.xtraTranslate = xtraTranslate;
+    else
+        model.xtraTranslate = null;
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.coordsBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, modelData.vertexPositions, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, model.normalBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, modelData.vertexNormals, gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, model.indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, modelData.indices, gl.STATIC_DRAW);
+	
+	//texture
+	gl.bindBuffer(gl.ARRAY_BUFFER, model.texBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, modelData.vertexTextureCoords, gl.STATIC_DRAW);
+	
+    model.render = function() {  // This function will render the object.
+           // Since the buffer from which we are taking the coordinates and normals
+	   // change each time an object is drawn, we have to use gl.vertexAttribPointer
+	   // to specify the location of the data. And to do that, we must first
+	   // bind the buffer that contains the data.  Similarly, we have to
+	   // bind this object's index buffer before calling gl.drawElements.
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.coordsBuffer);
+        gl.vertexAttribPointer(aCoords, 3, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.normalBuffer);
+        gl.vertexAttribPointer(aNormal, 3, gl.FLOAT, false, 0, 0);
+		
+		gl.uniform4fv(uColor, currentColor);
+		
+		//texture
+		gl.uniform1i(uHaveTexture, this.hasTexture);
+		if(this.hasTexture){
+			gl.enableVertexAttribArray(aTexCoord);
+			gl.bindBuffer(gl.ARRAY_BUFFER, this.texBuffer);
+			gl.vertexAttribPointer(aTexCoord , 2, gl.FLOAT, false, 0, 0);
+			gl.activeTexture(gl.TEXTURE0);
+			gl.bindTexture(gl.TEXTURE_2D, this.texture);
+			gl.uniform1i(uSampler, 0);
+			//console.log(model.texBuffer);
+			//console.log(aTexCoord);
+		}
+		else{
+			gl.disableVertexAttribArray(aTexCoord);
+			//console.log(aTexCoord);
+		}
+        
+		if (this.xtraTranslate) {
+            pushMatrix();
+            mat4.translate(modelview,modelview,this.xtraTranslate);
+        }
+
+		gl.uniform1i(uLuciAccese, luciAccese);
+		gl.uniform3fv(uDirectionalColor, directionalColor);
+
+		gl.uniform3fv(uLightDirection,lightDir);
+		
+		for(var i= 0; i < numPos ; i++){
+			gl.uniform3fv(uLightPosition[i],positionalLightPos[i]);
+		}
+		for(var i= 0; i < numSpot ; i++){
+			gl.uniform3fv(uSpotLightDir[i],spotDirT[i]);
+			gl.uniform3fv(uSpotLightPos[i],spotPosT[i]);
+		}
+		gl.uniform1i(uCutObject,cutObject);
+		gl.uniform1f(uYCut,ycut);
+
+        gl.uniformMatrix4fv(uModelview, false, modelview );
+        mat3.normalFromMat4(normalMatrix, modelview);
+        gl.uniformMatrix3fv(uNormalMatrix, false, normalMatrix);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.indexBuffer);
+        gl.drawElements(gl.TRIANGLES, this.count, gl.UNSIGNED_SHORT, 0);
+		if (this.xtraTranslate) {
+            popMatrix();
+        }
+    }
+    return model;
+}
+
+/* Creates a program for use in the WebGL context gl, and returns the
+ * identifier for that program.  If an error occurs while compiling or
+ * linking the program, an exception of type String is thrown.  The error
+ * string contains the compilation or linking error.  If no error occurs,
+ * the program identifier is the return value of the function.
+ */
+function createProgram(gl, vertexShaderSource, fragmentShaderSource) {
+   var vsh = gl.createShader( gl.VERTEX_SHADER );
+   gl.shaderSource(vsh,vertexShaderSource);
+   gl.compileShader(vsh);
+   if ( ! gl.getShaderParameter(vsh, gl.COMPILE_STATUS) ) {
+      throw "Error in vertex shader:  " + gl.getShaderInfoLog(vsh);
+   }
+   var fsh = gl.createShader( gl.FRAGMENT_SHADER );
+   gl.shaderSource(fsh, fragmentShaderSource);
+   gl.compileShader(fsh);
+   if ( ! gl.getShaderParameter(fsh, gl.COMPILE_STATUS) ) {
+      throw "Error in fragment shader:  " + gl.getShaderInfoLog(fsh);
+   }
+   var prog = gl.createProgram();
+   gl.attachShader(prog,vsh);
+   gl.attachShader(prog, fsh);
+   gl.linkProgram(prog);
+   if ( ! gl.getProgramParameter( prog, gl.LINK_STATUS) ) {
+      throw "Link error in program:  " + gl.getProgramInfoLog(prog);
+   }
+   return prog;
+}
+
+/* Gets the text content of an HTML element.  This is used
+ * to get the shader source from the script elements that contain
+ * it.  The parameter should be the id of the script element.
+ */
+function getTextContent( elementID ) {
+    var element = document.getElementById(elementID);
+    var fsource = "";
+    var node = element.firstChild;
+    var str = "";
+    while (node) {
+        if (node.nodeType == 3) // this is a text node
+            str += node.textContent;
+        node = node.nextSibling;
+    }
+    return str;
+}
+
+
+//--------------------------------- animation framework ------------------------------
+window.requestAnimationFrame = 
+    window.requestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    function (callback) {
+        setTimeout(function() { callback(Date.now()); },  1000/60);
+    }
+    
+var lastTime = 0;
+var joggingAngle = 0;
+var animating = false;
+var stopAnimation = false;
+var calaLaNotte=true;
+var diminuisceSole=1.0;
+function frame() {
+    if (animating) {
+        frameNumber += 0.5;	
+
+        var timeNow = new Date().getTime();
+   		if (lastTime != 0) {
+      		var elapsed = timeNow - lastTime;
+      		//console.log("speed"+speed+" ,elapsed"+elapsed+" ,yaw"+yaw+" ,pitch"+pitch+" ,yawRate"+yawRate+" ,pitchRate"+pitchRate);
+      		if (speed != 0) {
+		        xPos -= Math.sin(yaw * Math.PI / 180) * speed * elapsed;
+		        zPos -= Math.cos(yaw * Math.PI / 180) * speed * elapsed;
+
+				var newyPos =yPos+ Math.sin(pitch * Math.PI / 180) * speed * elapsed;
+				if(newyPos>-1.5 && newyPos<1) yPos=newyPos;
+				//console.log(yPos);
+		        //joggingAngle += elapsed * 0.6;  // 0.6 "fiddle factor" -- makes it feel more realistic :-)
+	        	//yPos = Math.sin(joggingAngle * Math.PI / 180) / 20 + 0.4;
+      		}
+	      	yaw += yawRate * elapsed;
+	      	
+	      	var newpitch = pitch+ pitchRate * elapsed;
+	      	if(newpitch>-30 && newpitch<35) pitch=newpitch;
+	      	//console.log(pitch);
+      	}
+    	lastTime = timeNow;
+
+    	if(!stopAnimation){
+			var alpha = 3.14/400;
+			angle =(angle + alpha)%(2*3.14);
+			rotatingWheel = (rotatingWheel + alpha*4)%(2*3.14);
+			lightDir = [Math.cos(angle),Math.sin(angle),0.0];
+			
+			if(lightDir[1]<Math.sin(30 * Math.PI / 180)) luciAccese=true;
+			else luciAccese=false;
+
+			//in 180 gradi ci sono 400 spicchi, quindi in 45 ce ne sono 400/4 = 100. Perciò il diminuisceSole deve diventare 0 in 100 iterazioni;
+			if(lightDir[1]<Math.sin(45 * Math.PI / 180)){
+				if(calaLaNotte){
+					//diminuisceSole decrease
+					diminuisceSole-=0.01;
+				}else{
+					//diminuisceSole increase
+					diminuisceSole+=0.01;
+				}
+			} 
+			if(lightDir[1]<Math.sin(0 * Math.PI / 180)){
+				diminuisceSole=0.0;
+				calaLaNotte=false;
+			}
+			if(lightDir[1]>Math.sin(45 * Math.PI / 180)){
+				diminuisceSole=1.0;
+				calaLaNotte=true;
+				//console.log("giorno");
+			}
+			
+			directionalColor= vec3.fromValues(1.0,1.0,1.0);
+			directionalColor[0]*=diminuisceSole;
+			directionalColor[1]*=diminuisceSole;
+			directionalColor[2]*=diminuisceSole;
+
+		}
+		draw();
+        requestAnimationFrame(frame);
+    }
+}
+
+function setAnimating(run) {
+    if (run != animating) {
+        animating = run;
+        if (animating)
+            requestAnimationFrame(frame);
+    }
+}
+
+//---------TEXTURE-----------------------------------------------------------------
+function initTexture(item, textureName) {
+  item.texture = gl.createTexture();
+  item.texture.image = new Image();
+  item.texture.image.crossOrigin = "anonymous";
+  item.texture.image.onload = function() {
+	gl.bindTexture(gl.TEXTURE_2D, item.texture);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, item.texture.image);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+	
+	//gl.generateMipmap(gl.TEXTURE_2D);
+
+	gl.bindTexture(gl.TEXTURE_2D, null);
+	item.hasTexture = true;
+  }
+  item.texture.image.src = textureName;
+}
+//---------------------------------------------------------------------------------
+
+var uLuciAccese;
+var luciAccese=false;
+
+var numSpot= 6;//cambia anche il numero nello shader
+var uNumSpot;
+var uSpotLightDir = new Array(numSpot);
+var uSpotLightPos= new Array(numSpot);
+var spotPosT = new Array(numSpot);
+var spotDirT = new Array(numSpot);
+
+var numPos=10;// cambia anche il numero nello shader
+var uNumPos;
+var uDirectionalColor;
+var directionalColor= new vec3.fromValues(1.0,1.0,1.0);
+var uLightPosition = new Array(numPos);
+var positionalLightPos = new Array(numPos);
+
+var uLightDirection;
+var lightDir = [0.0,0.0,0.0];
+
+var angle=Math.PI/4;
+var rotatingWheel = 0;
+var animate= false;
+
+var uHaveTexture;
+var uSampler;
+var aTexCoord;
+
+var uCutObject;
+var cutObject = false;
+var uYCut;
+var ycut= 0.0;
+
+var useRotator = false;
+
+function init() {
+   
+	for(var i = 0 ; i < numSpot; i++){
+		spotDirT[i] = vec3.create();
+		spotPosT[i] = vec3.create();
+    }
+   
+	for(var i = 0; i< numPos; i++){
+		positionalLightPos[i] = vec3.create();
+	}
+
+    try {
+        var canvas = document.getElementById("glcanvas");
+        gl = canvas.getContext("webgl");
+        if ( ! gl ) {
+            gl = canvas.getContext("experimental-webgl");
+        }
+        if ( ! gl ) {
+            throw "Could not create WebGL context.";
+        }
+        if(shaderNumber == 0 ){
+			var vertexShaderSource = getTextContent("vPhongShader"); 
+			var fragmentShaderSource = getTextContent("fPhongShader");
+		}else{
+			var vertexShaderSource = getTextContent("vshader"); 
+			var fragmentShaderSource = getTextContent("fshader");
+		}
+		
+        var prog = createProgram(gl,vertexShaderSource,fragmentShaderSource);
+        gl.useProgram(prog);
+        aCoords =  gl.getAttribLocation(prog, "coords");
+        aNormal =  gl.getAttribLocation(prog, "normal");
+        uModelview = gl.getUniformLocation(prog, "modelview");
+        uProjection = gl.getUniformLocation(prog, "projection");
+        uColor =  gl.getUniformLocation(prog, "color");
+        uNormalMatrix =  gl.getUniformLocation(prog, "normalMatrix");
+		
+		uLightDirection = gl.getUniformLocation(prog, "uLightDirection");
+		
+		uLuciAccese = gl.getUniformLocation(prog, "luciAccese");
+		uDirectionalColor = gl.getUniformLocation(prog, "uDirectionalColor");
+
+		uNumPos = gl.getUniformLocation(prog,"uNumPos");
+		gl.uniform1i(uNumPos,numPos);
+		for(var i = 0 ; i < numPos; i++){
+			uLightPosition[i] = gl.getUniformLocation(prog, "uLightPosition["+i+"]");
+		}
+
+		uNumSpot = gl.getUniformLocation(prog, "uNumSpot");
+		gl.uniform1i(uNumSpot,numSpot);
+		for(var i = 0 ; i < numSpot; i++){
+			uSpotLightDir[i] = gl.getUniformLocation(prog, "uSpotLightDir["+i+"]");
+			uSpotLightPos[i] = gl.getUniformLocation(prog, "uSpotLightPos["+i+"]");
+		}
+		
+		aTexCoord = gl.getAttribLocation(prog, "aTexCoord");
+		uHaveTexture = gl.getUniformLocation(prog, "uHaveTexture");
+		uSampler = gl.getUniformLocation(prog, "uSampler");
+
+		uCutObject = gl.getUniformLocation(prog, "cutObject");
+		uYCut = gl.getUniformLocation(prog, "ycut");
+		
+		//gl.enableVertexAttribArray(aTexCoord);
+        gl.enableVertexAttribArray(aCoords);  // won't change after initialization.
+        gl.enableVertexAttribArray(aNormal);  // also won't change.
+        gl.enable(gl.DEPTH_TEST);
+   }
+   catch (e) {
+      document.getElementById("message").innerHTML =
+           "Could not initialize WebGL: " + e;
+      return;
+   }
+
+   torus = createModel(uvTorus(0.5,1,16,8));   // Create all the basic objects.
+   sphere = createModel(uvSphere(1));
+   ring = createModel(uvRing(3.3,4.8,40));
+   cone = createModel(uvCone(),[0,0,0]);
+   cube = createModel(uvCube());
+   cylinder = createModel(uvCylinder(),[0,0,0]);
+   disk = createModel(uvCylinder(5.5,0.5,64),[0,0,.25]);
+
+   //HOLLAND
+   ringLegno = createModel(  uvRing(3.2,4,40) );
+   coneCemento = createModel(conoTroncato(1,0.5,1,6,false));
+   cylinderTegole = createModel(uvCylinder());
+   sphereTegole = createModel(uvSphere(1));
+   cylinderVetro = createModel(uvCylinder(),[0,0,0]);
+   cubeLegno = createModel(uvCube());
+   cubeLegno2 = createModel(uvCube());
+   sphereMetallo = createModel(uvSphere(1));
+   cylinderLegno = createModel(uvCylinder(),[0,0,0]);
+   cubeTela = createModel(uvCube());
+   sphereLegno = createModel(uvSphere(1));
+   coneLegno = createModel(uvCone());
+   cubeErba = createModel(uvCube());
+   sphereAcqua = createModel(uvSphere(1));
+   cubeAcqua = createModel(uvCube());
+   cylinderMetallo = createModel(uvCylinder());
+   coneLampione = createModel(uvCone());
+   troncoAlbero = createModel(uvCylinder(0.5,1,6),[0,0,0]);
+   chiomaAlbero = createModel(uvSphere(1,5,4),[0,0,0]);
+   cilindroFaretto = createModel(uvCylinder(),[0,0,0]);
+   sferaFaretto = createModel(uvSphere(1));
+   conoFaretto = createModel(uvCone(0.5,1,32,true));
+   sphereCielo= createModel(uvSphere(80));
+   cubeMattoni=createModel(uvCube2());
+   //-------------
+
+   var legno= "img/legno.png";
+   var legno2= "img/legno2.png";
+   var metallo= "img/metallo.png";
+
+   initTexture(ringLegno,legno);
+   initTexture(coneCemento,"img/mattoni4.png");
+   initTexture(cubeMattoni,"img/mattoni2.png");
+   initTexture(sphereTegole,"img/tegole1.png"); 
+   initTexture(cylinderTegole,"img/tegole1.png"); 
+   initTexture(cylinderVetro,"img/vetro2.png");
+   initTexture(cubeLegno,legno);
+   initTexture(cubeLegno2,legno2);
+   initTexture(sphereMetallo,metallo);
+   initTexture(cylinderLegno,legno);
+   initTexture(cubeTela,"img/tela.png");
+   initTexture(sphereLegno,legno);
+   initTexture(coneLegno,legno);
+   initTexture(cubeErba, "img/erba.png");
+   //initTexture(sphereAcqua, "img/acqua.png"); NON SERVE
+   initTexture(cubeAcqua, "img/acqua.png");
+   initTexture(cylinderMetallo,metallo);
+   initTexture(coneLampione,metallo);
+   initTexture(troncoAlbero,"img/legnoAlbero.png");
+   initTexture(chiomaAlbero,"img/chioma1.png");
+   initTexture(sphereCielo, "img/cielo.png");
+
+   rotator = new SimpleRotator(canvas,draw);
+   if(useRotator){
+	   rotator.setView( [-1, 1, 2], [0,1,0], 20);
+   }
+
+   animate=true;
+   setAnimating(animate);
+   
+   draw();
+}
+
+var pitch = 0;
+var pitchRate = 0;
+
+var yaw = 0;
+var yawRate = 0;
+
+var xPos = 0;
+var yPos = 0;
+var zPos = 0;
+
+var speed = 0;
+
+window.onkeydown = function (e) {
+    var code = e.keyCode ? e.keyCode : e.which;
+    if (code === "I".charCodeAt(0)) {
+        //fromPoint[1]-=1;
+        //console.log('up');
+        pitchRate = 0.1;
+    } else if (code === "K".charCodeAt(0)) {
+        //fromPoint[1]+=1;
+        //console.log('down');
+        pitchRate = -0.1;
+    } else if (code === "J".charCodeAt(0)) {
+    	//toPoint[0]+=1;
+    	//toPoint[1]+=0.05;
+    	pitch=0;
+    } else if (code === "L".charCodeAt(0)) {
+		//toPoint[1]-=0.05;
+    } else if (code === "W".charCodeAt(0)) {
+    	//fromPoint[2]+=1;
+    	//fromPoint[2]+=1;
+    	speed = 0.003;
+    } else if (code === "S".charCodeAt(0)) {
+		//fromPoint[2]-=1;
+    	//fromPoint[2]-=1;
+    	speed = -0.003;
+    } else if (code === "A".charCodeAt(0)) {
+    	//fromPoint[0]-=1;
+    	//fromPoint[0]-=1;
+    	yawRate = 0.1;
+    } else if (code === "D".charCodeAt(0)) {
+		//fromPoint[0]+=1;
+    	//fromPoint[0]+=1;
+    	yawRate = -0.1;
+    }
+    
+};
+
+window.onkeyup = function (e) {
+    var code = e.keyCode ? e.keyCode : e.which;
+    if (code === "I".charCodeAt(0)) {
+        //fromPoint[1]-=1;
+        //console.log('i up');
+        pitchRate = 0;
+       // pitch=0;
+    } else if (code === "K".charCodeAt(0)) {
+        //fromPoint[1]+=1;
+        //console.log('down');
+        pitchRate = 0;
+        //pitch=0;
+    } else if (code === "J".charCodeAt(0)) {
+    	//toPoint[0]+=1;
+    } else if (code === "L".charCodeAt(0)) {
+		//toPoint[0]-=1;
+    } else if (code === "W".charCodeAt(0)) {
+    	//fromPoint[2]+=1;
+    	//fromPoint[2]+=1;
+    	speed = 0;
+    	//zPos=0;
+    	//xPos=0;
+    } else if (code === "S".charCodeAt(0)) {
+		//fromPoint[2]-=1;
+    	//fromPoint[2]-=1;
+    	speed = 0;
+    	//zPos=0;
+    	//xPos=0;
+    } else if (code === "A".charCodeAt(0)) {
+    	//fromPoint[0]-=1;
+    	//fromPoint[0]-=1;
+    	yawRate = 0;
+    	//yaw=0;
+    	//console.log("a up");
+    } else if (code === "D".charCodeAt(0)) {
+		//fromPoint[0]+=1;
+    	//fromPoint[0]+=1;
+    	yawRate = 0;
+    	//yaw=0;
+    }
+};
+
+</script>
+</head>
+<body onload="init()" style="background-color:#DDD">
+
+	<p id="message" style="font-weight:bold">Fabio Siliberto and Carlotta Gentiluomo project: An hollandish landscape.</p>
+
+	<p>
+	</p>
+
+	<div>
+	    <canvas width=800 height=800 id="glcanvas" style="background-color:blue"></canvas>
+		<br/>Witout the rotator use w,s,a,d,i,k for moving. With the rotator click and drag the scene.<br/>Options:&nbsp;&nbsp;
+		<!--<br/>Choose the shader:<br/>
+		<input type="radio" name="shader_type" value="phong" checked="checked"/>Phong ||
+		<input type="radio" name="shader_type" value="starting"/>Starting<br/>-->
+		<input type="checkBox" name="animating" checked="checked" />Animation &nbsp;&nbsp;&nbsp;&nbsp;
+		<input type="checkBox" name="rotator" />Rotator
+		<!--<input type="checkBox" name="MoreObjects" />More objects<br/>-->
+	</div>
+</body>
+</html>
