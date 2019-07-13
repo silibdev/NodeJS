@@ -17,9 +17,8 @@ var SampleApp = function () {
     var self = this;
 
     var LOCALHOST = 'localhost:27017',
-        MONGO_DB_HOST = process.env.OPENSHIFT_MONGODB_DB_URL || LOCALHOST,
-        DB_NAME = process.env.OPENSHIFT_APP_NAME || 'nodejs',
-        AUTH_MECHANISM = 'DEFAULT';
+        MONGO_DB_HOST = process.env.DB_URL || LOCALHOST,
+        DB_NAME = process.env.DB_NAME || 'nodejs';
 
 
     /*  ================================================================  */
@@ -31,13 +30,13 @@ var SampleApp = function () {
      */
     self.setupVariables = function () {
         //  Set the environment variables we need.
-        self.ipaddress = process.env.IP || process.env.OPENSHIFT_NODEJS_IP;
-        self.port = process.env.PORT || process.env.OPENSHIFT_NODEJS_PORT || 8080;
+        self.ipaddress = process.env.IP;
+        self.port = process.env.PORT || 8080;
 
         if (typeof self.ipaddress === "undefined") {
-            //  Log errors on OpenShift but continue w/ 127.0.0.1 - this
+            //  Log errors but continue w/ 127.0.0.1 - this
             //  allows us to run/test the app locally.
-            console.warn('No OPENSHIFT_NODEJS_IP var, using 127.0.0.1');
+            console.warn('No IP var, using 127.0.0.1');
             self.ipaddress = "127.0.0.1";
         } else {
             console.log("The server is going to use this address", self.ipaddress + ':' + self.port);
@@ -131,13 +130,17 @@ var SampleApp = function () {
         if (MONGO_DB_HOST === LOCALHOST) {
             url = f('mongodb://%s/%s', MONGO_DB_HOST, DB_NAME);
         } else {
-            url = f('%s%s?authMechanism=%s',
-                MONGO_DB_HOST, DB_NAME, AUTH_MECHANISM);
+            url = f('%s/%s',
+                MONGO_DB_HOST, DB_NAME);
         }
 
         console.log('Trying to connect to mongodb: ', url);
 
-        mongoClient.connect(url, function (err, database) {
+        mongoClient.connect(url,{ useNewUrlParser: true }, function (err, client) {
+            if (err) {
+                console.log(err);
+            }
+            var database = client.db(DB_NAME);
             self.createRoutes();
             self.app = express();
             self.http = http.Server(self.app);

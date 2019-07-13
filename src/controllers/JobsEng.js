@@ -180,12 +180,15 @@ JobsEng.prototype = {
                         }
                     }
                 ],
-                function (err, docs) {
+                function (err, cursor) {
                     if (self._handleDBError(err, res)) return;
 
-                    docsBuildSh = docs;
+                    cursor.toArray().then( function (docs) {
 
-                    finish();
+                        docsBuildSh = docs;
+
+                        finish();
+                    });
                 }
             );
 
@@ -198,12 +201,14 @@ JobsEng.prototype = {
                         }
                     }
                 ],
-                function (err, docs) {
+                function (err, cursor) {
                     if (self._handleDBError(err, res)) return;
 
-                    docsSwaggerPy = docs;
+                    cursor.toArray().then( function (docs) {
+                        docsSwaggerPy = docs;
 
-                    finish();
+                        finish();
+                    });
                 }
             );
 
