@@ -150,6 +150,7 @@ var SampleApp = function () {
             self.app.set('view engine', 'pug');
 
             self.app.use('/fun/games/byrons-adventures', express.static('./static/BA_GameRelease'));
+            self.app.use('/fun/games/hangman-with-friends', express.static('./static/hangman'));
             self.app.use('/fun/graphic/assignment', express.static('./static/assignment'));
             self.app.use('/fun/graphic/project', express.static('./static/project'));
             self.app.use('/assets', express.static('./static/assets'));
