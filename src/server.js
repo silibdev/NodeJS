@@ -135,7 +135,7 @@ var SampleApp = function () {
         }
 
         console.log('Trying to connect to mongodb: ', url);
-
+        
         //mongoClient.connect(url,{ useNewUrlParser: true }, function (err, client) {
         //    if (err) {
         //        console.log(err);
@@ -159,7 +159,7 @@ var SampleApp = function () {
                 console.log(err);
             } else {
                 console.log('Connected to mongodb');
-                self.app.use('/', new JobsEng(database, self.socketIo).getRouter());
+                // self.app.use('/', new JobsEng(database, self.socketIo).getRouter());
             }
 
             //  Add handlers for the app (from the routes).
