@@ -136,11 +136,11 @@ var SampleApp = function () {
 
         console.log('Trying to connect to mongodb: ', url);
 
-        mongoClient.connect(url,{ useNewUrlParser: true }, function (err, client) {
-            if (err) {
-                console.log(err);
-            }
-            var database = client.db(DB_NAME);
+        //mongoClient.connect(url,{ useNewUrlParser: true }, function (err, client) {
+        //    if (err) {
+        //        console.log(err);
+        //    }
+            var database; //= client.db(DB_NAME);
             self.createRoutes();
             self.app = express();
             self.http = http.Server(self.app);
@@ -168,7 +168,7 @@ var SampleApp = function () {
             }
 
             self.start();
-        });
+        //});
     };
 
 
