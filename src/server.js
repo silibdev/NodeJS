@@ -154,7 +154,8 @@ var SampleApp = function () {
             self.app.use('/fun/graphic/assignment', express.static('./static/assignment'));
             self.app.use('/fun/graphic/project', express.static('./static/project'));
             self.app.use('/assets', express.static('./static/assets'));
-
+            
+            var err;
             if (err) {
                 console.log(err);
             } else {
