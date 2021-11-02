@@ -135,12 +135,8 @@ var SampleApp = function () {
         }
 
         console.log('Trying to connect to mongodb: ', url);
-        
-        //mongoClient.connect(url,{ useNewUrlParser: true }, function (err, client) {
-        //    if (err) {
-        //        console.log(err);
-        //    }
-            var database; //= client.db(DB_NAME);
+
+        mongoClient.connect(url,{ useNewUrlParser: true }, function (err, client) {
             self.createRoutes();
             self.app = express();
             self.http = http.Server(self.app);
@@ -154,13 +150,13 @@ var SampleApp = function () {
             self.app.use('/fun/graphic/assignment', express.static('./static/assignment'));
             self.app.use('/fun/graphic/project', express.static('./static/project'));
             self.app.use('/assets', express.static('./static/assets'));
-            
-            var err;
+
             if (err) {
-                console.log(err);
+              console.log(err);
             } else {
-                console.log('Connected to mongodb');
-                // self.app.use('/', new JobsEng(database, self.socketIo).getRouter());
+              console.log('Connected to mongodb');
+              var database = client.db(DB_NAME);
+              self.app.use('/', new JobsEng(database, self.socketIo).getRouter());
             }
 
             //  Add handlers for the app (from the routes).
@@ -169,7 +165,7 @@ var SampleApp = function () {
             }
 
             self.start();
-        //});
+        });
     };
 
 
